@@ -76,6 +76,25 @@ jobs:
             -only-testing:${{ matrix.project.scheme }}UITests \
             clean test | xcpretty
 
+      - name: Save tested projects
+        id: save-tested
+        run: |
+          # Create empty array
+          echo "[]" > tested.json
+
+          # Append each changed project
+          if [ "${{ needs.detect-changes.outputs.cicdtesting }}" = "true" ]; then
+            echo '[{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]' > tested.json
+          fi
+
+          if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" = "true" ]; then
+            echo '[{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]' >> tested.json
+          fi
+
+          # Ensure valid JSON array always
+          cat tested.json
+
+          echo "tested-projects=$(cat tested.json)" >> $GITHUB_OUTPUT
 
   deploy:
     needs: tests
