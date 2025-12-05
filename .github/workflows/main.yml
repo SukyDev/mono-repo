@@ -78,14 +78,14 @@ jobs:
 
 
   deploy:
-  needs: tests
-  if: needs.tests.outputs.tested-projects != ''
-  strategy:
-    matrix:
-      project: ${{ fromJson(needs.tests.outputs.tested-projects || '[]') }}
-  runs-on: macos-latest
+    needs: tests
+    if: needs.tests.outputs.tested-projects != ''
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.tests.outputs.tested-projects || '[]') }}
+    runs-on: macos-latest
 
-  steps:
+    steps:
       - uses: actions/checkout@v4
 
       - name: Deploy project
