@@ -20,7 +20,7 @@
 		<string>CiCdTestingProfileDev</string>
 	</dict>
 	<key>signingCertificate</key>
-	<string>Zesium mobile d.o.o.</string>
+	<string>Apple Distribution</string>
 	<key>stripSwiftSymbols</key>
 	<true/>
 	<key>manageAppVersionAndBuildNumber</key>
