@@ -161,7 +161,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '15.3'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
@@ -191,9 +191,6 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - name: Allow provisioning updates
-        run: xcodebuild -allowProvisioningUpdates
-
       - name: Build iOS application archive
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
@@ -204,10 +201,12 @@ jobs:
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -configuration Prod \
+            -allowProvisioningUpdates \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
           xcodebuild -exportArchive \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive \
             -exportOptionsPlist $PWD/exportOptions.plist \
+            -allowProvisioningUpdates \
             -exportPath $PWD/build
 
       - name: Decode App Store Connect private key file
