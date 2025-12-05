@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "957A2E25-1DAB-4EC8-91FD-CD3A011A04B0",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:CiCdTestingDev\/cicddev-ios",
+        "identifier" : "cicddev-iosTests",
+        "name" : "cicddev-iosTests"
+      }
+    }
+  ],
+  "version" : 1
+}
