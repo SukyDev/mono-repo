@@ -194,7 +194,15 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+          # Extract UUID of the provisioning profile
+          PROFILE_UUID=$(
+          security cms -D -i "$PP_PATH" \
+          | plutil -extract UUID raw -
+          )
+
+          # Copy profile with correct filename recognized by Xcode
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
       - name: Resolve SPM dependencies
         run: |
