@@ -80,23 +80,38 @@ jobs:
       tested-projects: ${{ steps.collect.outputs.tested-projects }}
       has-projects: ${{ steps.collect.outputs.has-projects }}
     steps:
+      - name: Debug outputs
+        run: |
+          echo "cicdtesting output: '${{ needs.detect-changes.outputs.cicdtesting }}'"
+          echo "cicdtestingdev output: '${{ needs.detect-changes.outputs.cicdtestingdev }}'"
+      
       - name: Collect tested projects
         id: collect
         run: |
           projects="[]"
           
-          if [ "${{ needs.detect-changes.outputs.cicdtesting }}" = "true" ]; then
-            projects=$(echo "$projects" | jq '. += [{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
+          echo "Initial projects: $projects"
+          
+          if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
+            echo "Adding CiCdTesting to projects"
+            projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
+            echo "Projects after adding CiCdTesting: $projects"
           fi
           
-          if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" = "true" ]; then
-            projects=$(echo "$projects" | jq '. += [{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
+          if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
+            echo "Adding CiCdTestingDev to projects"
+            projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
+            echo "Projects after adding CiCdTestingDev: $projects"
           fi
           
+          echo "Final projects: $projects"
           echo "tested-projects=$projects" >> $GITHUB_OUTPUT
           
           # Check if array is not empty
-          if [ "$(echo "$projects" | jq 'length')" -gt 0 ]; then
+          project_count=$(echo "$projects" | jq 'length')
+          echo "Project count: $project_count"
+          
+          if [ "$project_count" -gt 0 ]; then
             echo "has-projects=true" >> $GITHUB_OUTPUT
           else
             echo "has-projects=false" >> $GITHUB_OUTPUT
