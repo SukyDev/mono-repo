@@ -21,7 +21,7 @@ final class CiCdTestingTests: XCTestCase {
     func testExample() throws {
         let contentView = ContentView()
 
-        XCTAssert(contentView.text == "Testing")
+        XCTAssert(contentView.text == "Testin")
     }
 
     func testPerformanceExample() throws {

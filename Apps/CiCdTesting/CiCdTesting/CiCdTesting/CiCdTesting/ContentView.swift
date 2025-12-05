@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
-    var text: String = "Testing"
+    var text: String = "Testin"
     var body: some View {
         VStack {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
             Text(text)
-            Text("Some")
+            Text("Somes")
         }
         .padding()
     }
