@@ -98,6 +98,10 @@ jobs:
 
   deploy:
     needs: tests
+
+    - name: Debug tested-projects output
+      run: echo "tested-projects='${{ needs.tests.outputs.tested-projects }}'"
+  
     if: ${{ needs.tests.outputs.tested-projects != '[]' }}
     strategy:
       matrix:
