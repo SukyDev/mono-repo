@@ -153,15 +153,20 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Debug tested-projects output
-        run: echo "Deploying project ${{ matrix.project.name }}"
+      - name: Debug matrix project
+        run: |
+          echo "Full project object: ${{ toJson(matrix.project) }}"
+          echo "Project name: ${{ matrix.project.name }}"
+          echo "Project folder: ${{ matrix.project.folder }}"
+          echo "Project file: ${{ matrix.project.project_file }}"
+          echo "Project scheme: ${{ matrix.project.scheme }}"
         
       - uses: actions/checkout@v4
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '15.3'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
@@ -170,7 +175,7 @@ jobs:
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets[matrix.project.provisioning_profile_secret] }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets[format('BUILD_PROVISION_PROFILE_BASE64_{0}', matrix.project.name)] }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
@@ -191,15 +196,22 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+      - name: Resolve SPM dependencies
+        run: |
+          cd ${{ matrix.project.folder }}
+          if [ -f "Package.swift" ]; then
+            swift package resolve
+          fi
+
       - name: Build iOS application archive
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
-          xcodebuild clean -project ${{ matrix.project_file }} -scheme ${{ matrix.scheme }} -configuration Prod
+          xcodebuild clean -project ${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
           xcodebuild archive \
-            -project ${{ matrix.project_file }} \
-            -scheme ${{ matrix.scheme }} \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
             -allowProvisioningUpdates \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
