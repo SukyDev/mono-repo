@@ -13,6 +13,7 @@ jobs:
     outputs:
       cicdtesting: ${{ steps.filter.outputs.cicdtesting }}
       cicdtestingdev: ${{ steps.filter.outputs.cicdtestingdev }}
+      workflow-changed: ${{ steps.filter.outputs.workflow }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
@@ -23,10 +24,12 @@ jobs:
               - 'CiCdTesting/**'
             cicdtestingdev:
               - 'CiCdTestingDev/**'
+            workflow:
+              - '.github/workflows/**'
 
   tests:
     needs: detect-changes
-    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true'
+    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true'
     runs-on: macos-latest
 
     strategy:
@@ -36,12 +39,12 @@ jobs:
             folder: CiCdTesting
             project_file: CiCdTesting.xcodeproj
             scheme: CiCdTesting
-            changed: ${{ needs.detect-changes.outputs.cicdtesting }}
+            changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
           - name: CiCdTestingDev
             folder: CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
-            changed: ${{ needs.detect-changes.outputs.cicdtestingdev }}
+            changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -103,16 +106,23 @@ jobs:
           
           echo "Initial projects: $projects"
           
-          if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
-            echo "Adding CiCdTesting to projects"
-            projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
-            echo "Projects after adding CiCdTesting: $projects"
-          fi
-          
-          if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
-            echo "Adding CiCdTestingDev to projects"
-            projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
-            echo "Projects after adding CiCdTestingDev: $projects"
+          # If workflow changed, test all projects
+          if [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
+            echo "Workflow changed, adding all projects"
+            projects='[{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"},{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]'
+          else
+            # Otherwise, only add changed projects
+            if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
+              echo "Adding CiCdTesting to projects"
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
+              echo "Projects after adding CiCdTesting: $projects"
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
+              echo "Adding CiCdTestingDev to projects"
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
+              echo "Projects after adding CiCdTestingDev: $projects"
+            fi
           fi
           
           echo "Final projects: $projects"
