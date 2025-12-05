@@ -26,11 +26,12 @@ jobs:
 
   tests:
     needs: detect-changes
+    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true'
     runs-on: macos-latest
 
     strategy:
       matrix:
-        project:
+        include:
           - name: CiCdTesting
             folder: CiCdTesting
             project_file: CiCdTesting.xcodeproj
@@ -42,34 +43,44 @@ jobs:
             scheme: CiCdTestingDev
             changed: ${{ needs.detect-changes.outputs.cicdtestingdev }}
 
-        # Skip projects that didn't change
-        exclude:
-          - project: { changed: 'false' }
-
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Check if project changed
+        id: check
+        run: |
+          if [ "${{ matrix.changed }}" != "true" ]; then
+            echo "Project ${{ matrix.name }} did not change, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Project ${{ matrix.name }} changed, running tests"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Select Xcode
+        if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16.4.0'
 
       - name: Run Unit Tests
+        if: steps.check.outputs.skip != 'true'
         run: |
           xcodebuild test \
-            -project ${{ matrix.project.folder }}/${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
+            -project ${{ matrix.folder }}/${{ matrix.project_file }} \
+            -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
-            -only-testing:${{ matrix.project.scheme }}Tests \
+            -only-testing:${{ matrix.scheme }}Tests \
             clean test | xcpretty
 
       - name: Run UI Tests
+        if: steps.check.outputs.skip != 'true'
         run: |
           xcodebuild test \
-            -project ${{ matrix.project.folder }}/${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
+            -project ${{ matrix.folder }}/${{ matrix.project_file }} \
+            -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
-            -only-testing:${{ matrix.project.scheme }}UITests \
+            -only-testing:${{ matrix.scheme }}UITests \
             clean test | xcpretty
 
   # Separate job to collect tested projects
