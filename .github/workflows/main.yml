@@ -191,11 +191,6 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - name: Resolve SPM dependencies
-        run: |
-          cd ${{ matrix.project.folder.cicd-ios }}
-          swift package resolve
-
       - name: Allow provisioning updates
         run: xcodebuild -allowProvisioningUpdates
 
