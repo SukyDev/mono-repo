@@ -1,4 +1,4 @@
-name: iOS Tests
+name: iOS CI
 
 on:
   pull_request:
@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Detect which projects changed
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -25,26 +24,71 @@ jobs:
             cicdtestingdev:
               - 'CiCdTestingDev/**'
 
-  test:
+
+  tests:
     needs: detect-changes
-    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true'
     runs-on: macos-latest
+
     strategy:
       matrix:
         project:
           - name: CiCdTesting
+            folder: CiCdTesting
             project_file: CiCdTesting.xcodeproj
             scheme: CiCdTesting
-            provisioning_profile_secret: PROVISIONING_PROFILE_CICDTESTING
             changed: ${{ needs.detect-changes.outputs.cicdtesting }}
           - name: CiCdTestingDev
+            folder: CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
-            provisioning_profile_secret: PROVISIONING_PROFILE_CICDTESTINGDEV
             changed: ${{ needs.detect-changes.outputs.cicdtestingdev }}
+
+        # Skip projects that didn't change
         exclude:
-          - project:
-              changed: 'false'
+          - project: { changed: 'false' }
+
+    outputs:
+      tested-projects: ${{ toJson(matrix.project) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.3'
+
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -only-testing:${{ matrix.project.scheme }}Tests \
+            clean test | xcpretty
+
+      - name: Run UI Tests
+        run: |
+          xcodebuild test \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -only-testing:${{ matrix.project.scheme }}UITests \
+            clean test | xcpretty
+
+
+  deploy:
+    needs: [detect-changes, tests]
+    runs-on: macos-latest
+
+    # 🚨 Deploy only on push or manual run AND only if tests succeeded
+    if: >
+      needs.tests.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.tests.outputs.tested-projects) }}
 
     steps:
       - uses: actions/checkout@v4
