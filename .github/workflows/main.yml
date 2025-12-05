@@ -171,8 +171,11 @@ jobs:
       - name: Show build SDK
         run: xcodebuild -showsdks 
 
+      - name: Compute uppercase name
+        run: echo "NAME_UPPER=$(echo ${{ matrix.project.name }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_ENV
+
       - name: Set dynamic provisioning profile key
-        run: echo "PP_KEY=PROVISIONING_PROFILE_${{ matrix.project.name_upper }}" >> $GITHUB_ENV
+        run: echo "PP_KEY=PROVISIONING_PROFILE_${NAME_UPPER}" >> $GITHUB_ENV
 
       - name: Install the Apple certificate and provisioning profile
         env:
