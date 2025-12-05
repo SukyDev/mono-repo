@@ -48,7 +48,7 @@ jobs:
           - project: { changed: 'false' }
 
     outputs:
-      tested-projects: ${{ toJson(matrix.project) }}
+      tested-projects: ${{ steps.save-tested.outputs.tested-projects }}
 
     steps:
       - uses: actions/checkout@v4
@@ -101,7 +101,8 @@ jobs:
     if: needs.tests.outputs.tested-projects != ''
     strategy:
       matrix:
-        project: ${{ fromJson(needs.tests.outputs.tested-projects || '[]') }}
+        project: ${{ fromJson(needs.tests.outputs.tested-projects) }}
+
     runs-on: macos-latest
 
     steps:
