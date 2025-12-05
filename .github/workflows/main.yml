@@ -98,7 +98,7 @@ jobs:
 
   deploy:
     needs: tests
-    if: needs.tests.outputs.tested-projects != ''
+    if: ${{ needs.tests.outputs.tested-projects != '[]' }}
     strategy:
       matrix:
         project: ${{ fromJson(needs.tests.outputs.tested-projects) }}
