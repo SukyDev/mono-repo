@@ -8,12 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    var text: String = "Test"
     var body: some View {
         VStack {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Testing push to main 8!")
+            Text(text)
         }
         .padding()
     }

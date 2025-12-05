@@ -4,7 +4,7 @@
       "id" : "307E6FB0-524C-4FD1-BB2B-E9FD33EB2726",
       "name" : "Configuration 1",
       "options" : {
-
+        "targetForVariableExpansion" : null
       }
     }
   ],
@@ -17,6 +17,21 @@
         "containerPath" : "container:CiCdTesting\/cicd-ios",
         "identifier" : "cicd-iosTests",
         "name" : "cicd-iosTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:CiCdTesting.xcodeproj",
+        "identifier" : "D5A523772EE1BEF0005B0248",
+        "name" : "CiCdTestingTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:CiCdTesting\/cicd-ios",
+        "identifier" : "BaseViewTests",
+        "name" : "BaseViewTests"
       }
     }
   ],
