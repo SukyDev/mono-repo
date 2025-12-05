@@ -17,15 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Fetch all history for proper change detection
       - uses: dorny/paths-filter@v2
         id: filter
         with:
           filters: |
             cicdtesting:
-              - 'CiCdTesting/**'
+              - 'Apps/CiCdTesting/**'
             cicdtestingdev:
-              - 'CiCdTestingDev/**'
+              - 'Apps/CiCdTestingDev/**'
             workflow:
               - '.github/workflows/**'
 
@@ -38,19 +38,19 @@ jobs:
       matrix:
         include:
           - name: CiCdTesting
-            folder: CiCdTesting
+            folder: Apps/CiCdTesting/CiCdTesting/CiCdTesting
             project_file: CiCdTesting.xcodeproj
             scheme: CiCdTesting
             changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
           - name: CiCdTestingDev
-            folder: CiCdTestingDev
+            folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
             changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check if project changed
         id: check
         run: |
@@ -71,8 +71,9 @@ jobs:
       - name: Run Unit Tests
         if: steps.check.outputs.skip != 'true'
         run: |
+          cd ${{ matrix.folder }}
           xcodebuild test \
-            -project ${{ matrix.folder }}/${{ matrix.project_file }} \
+            -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
             -only-testing:${{ matrix.scheme }}Tests \
@@ -81,8 +82,9 @@ jobs:
       - name: Run UI Tests
         if: steps.check.outputs.skip != 'true'
         run: |
+          cd ${{ matrix.folder }}
           xcodebuild test \
-            -project ${{ matrix.folder }}/${{ matrix.project_file }} \
+            -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
             -only-testing:${{ matrix.scheme }}UITests \
@@ -100,6 +102,7 @@ jobs:
         run: |
           echo "cicdtesting output: '${{ needs.detect-changes.outputs.cicdtesting }}'"
           echo "cicdtestingdev output: '${{ needs.detect-changes.outputs.cicdtestingdev }}'"
+          echo "workflow-changed output: '${{ needs.detect-changes.outputs.workflow-changed }}'"
       
       - name: Collect tested projects
         id: collect
@@ -111,18 +114,18 @@ jobs:
           # If workflow changed, test all projects
           if [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
             echo "Workflow changed, adding all projects"
-            projects='[{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"},{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]'
+            projects='[{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"},{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]'
           else
             # Otherwise, only add changed projects
             if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
               echo "Adding CiCdTesting to projects"
-              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
               echo "Projects after adding CiCdTesting: $projects"
             fi
             
             if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
               echo "Adding CiCdTestingDev to projects"
-              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
               echo "Projects after adding CiCdTestingDev: $projects"
             fi
           fi
@@ -199,16 +202,17 @@ jobs:
       - name: Build iOS application archive
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
-          cat $PWD/${{ matrix.project.folder }}/exportOptions.plist
-          xcodebuild clean -project ${{ matrix.project.folder }}/${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
+          cd ${{ matrix.project.folder }}
+          cat exportOptions.plist
+          xcodebuild clean -project ${{ matrix.project_file }} -scheme ${{ matrix.scheme }} -configuration Prod
           xcodebuild archive \
-            -project ${{ matrix.project.folder }}/${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
+            -project ${{ matrix.project_file }} \
+            -scheme ${{ matrix.scheme }} \
             -configuration Prod \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
           xcodebuild -exportArchive \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive \
-            -exportOptionsPlist $PWD/${{ matrix.project.folder }}/exportOptions.plist \
+            -exportOptionsPlist $PWD/exportOptions.plist \
             -exportPath $PWD/build
 
       - name: Decode App Store Connect private key file
@@ -226,6 +230,7 @@ jobs:
           ISSUER_ID: ${{ secrets.ISSUER_ID }}          
           API_KEY: ${{ secrets.KEY_ID }}     
         run: |
+          cd ${{ matrix.project.folder }}
           xcrun altool --upload-app -f build/${{ matrix.project.name }}.ipa -t ios --apiKey $API_KEY --apiIssuer "$ISSUER_ID"
 
       - name: Clean up keychain and provisioning profile
