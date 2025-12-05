@@ -175,7 +175,7 @@ jobs:
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets[format('BUILD_PROVISION_PROFILE_BASE64_{0}', matrix.project.name)] }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets[format('PROVISIONING_PROFILE_{0}', matrix.project.name_upper)] }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
