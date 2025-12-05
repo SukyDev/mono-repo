@@ -78,19 +78,17 @@ jobs:
 
 
   deploy:
-    needs: [detect-changes, tests]
-    runs-on: macos-latest
+  needs: tests
+  if: ${{ needs.tests.outputs.tested-projects != '[]' }}
+  strategy:
+    matrix:
+      project: ${{ fromJson(needs.tests.outputs.tested-projects) }}
+  runs-on: macos-latest
 
-    # 🚨 Deploy only on push or manual run AND only if tests succeeded
-    if: >
-      needs.tests.result == 'success' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+  steps:
+    - name: Deploy to TestFlight
+      run: echo "Deploying ${matrix.project}"
 
-    strategy:
-      matrix:
-        project: ${{ fromJson(needs.tests.outputs.tested-projects) }}
-
-    steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
