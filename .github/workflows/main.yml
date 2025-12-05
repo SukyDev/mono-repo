@@ -193,7 +193,7 @@ jobs:
 
       - name: Resolve SPM dependencies
         run: |
-          cd ${{ matrix.project.folder }}
+          cd ${{ matrix.project.folder.cicd-ios }}
           swift package resolve
 
       - name: Allow provisioning updates
