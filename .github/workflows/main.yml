@@ -29,13 +29,6 @@ jobs:
             workflow:
               - '.github/workflows/**'
 
-      - name: Resolve SPM dependencies
-        run: |
-          cd ${{ matrix.project.folder }}
-          if [ -f "Package.swift" ]; then
-            swift package resolve
-          fi
-
   tests:
     needs: detect-changes
     if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true'
@@ -84,7 +77,7 @@ jobs:
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
-          xcodebuild test \
+          xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
@@ -96,7 +89,7 @@ jobs:
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
-          xcodebuild test \
+          xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
