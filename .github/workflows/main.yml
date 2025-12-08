@@ -214,7 +214,7 @@ jobs:
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
           xcodebuild clean -project ${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
-          xcodebuild archive \
+          xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
