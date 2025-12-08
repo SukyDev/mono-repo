@@ -76,7 +76,7 @@ jobs:
           xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.0' \
             -only-testing:${{ matrix.scheme }}Tests \
             clean test | xcpretty
 
@@ -88,7 +88,7 @@ jobs:
           xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.0' \
             -only-testing:${{ matrix.scheme }}UITests \
             clean test | xcpretty
 
