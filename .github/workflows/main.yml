@@ -213,13 +213,33 @@ jobs:
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
-          xcodebuild -skipMacroValidation clean -project ${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
+          
+          # Clean first
+          xcodebuild -skipMacroValidation clean \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -configuration Prod
+          
+          # Build all targets first to ensure resource bundles are created
+          echo "Building all targets to ensure SPM resource bundles are generated..."
+          xcodebuild -skipMacroValidation build \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -configuration Prod \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates
+          
+          # Now archive with all dependencies built
+          echo "Creating archive..."
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
             -allowProvisioningUpdates \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
+          
+          # Export the archive
+          echo "Exporting archive..."
           xcodebuild -skipMacroValidation -exportArchive \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive \
             -exportOptionsPlist $PWD/exportOptions.plist \
