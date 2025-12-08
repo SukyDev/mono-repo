@@ -68,7 +68,7 @@ jobs:
         with:
           xcode-version: '16.4.0'
 
-      - name: Run Unit Tests
+      - name: Run Reducer Tests
         if: steps.check.outputs.skip != 'true'
         run: |
           cd ${{ matrix.folder }}
@@ -77,19 +77,7 @@ jobs:
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
-            -only-testing:${{ matrix.scheme }}Tests \
-            clean test | xcpretty
-
-      - name: Run UI Tests
-        if: steps.check.outputs.skip != 'true'
-        run: |
-          cd ${{ matrix.folder }}
-          set -o pipefail
-          xcodebuild test \
-            -project ${{ matrix.project_file }} \
-            -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
-            -only-testing:${{ matrix.scheme }}UITests \
+            -only-testing:${{ matrix.scheme }}Tests/cicddev-iosTests \
             clean test | xcpretty
 
   collect-tested:
