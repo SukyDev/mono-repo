@@ -41,11 +41,15 @@ jobs:
             folder: Apps/CiCdTesting/CiCdTesting/CiCdTesting
             project_file: CiCdTesting.xcodeproj
             scheme: CiCdTesting
+            package_name: cicd-ios
+            test_target: ContentViewTests
             changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
           - name: CiCdTestingDev
             folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
+            package_name: cicddev-ios
+            test_target: ContentViewTests
             changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
 
     steps:
@@ -77,7 +81,19 @@ jobs:
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
-            -only-testing:${{ matrix.scheme }}/ContentViewTests/ \
+            -only-testing:${{ matrix.test_target }} \
+            clean test | xcpretty
+
+      - name: Run UI Tests
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd ${{ matrix.folder }}
+          set -o pipefail
+          xcodebuild test \
+            -project ${{ matrix.project_file }} \
+            -scheme ${{ matrix.scheme }} \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
+            -only-testing:${{ matrix.scheme }}UITests \
             clean test | xcpretty
 
   collect-tested:
@@ -104,17 +120,17 @@ jobs:
           
           if [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
             echo "Workflow changed, adding all projects"
-            projects='[{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"},{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]'
+            projects='[{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting","package_name":"cicd-ios"},{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev","package_name":"cicddev-ios"}]'
           else
             if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
               echo "Adding CiCdTesting to projects"
-              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting","package_name":"cicd-ios"}]')
               echo "Projects after adding CiCdTesting: $projects"
             fi
             
             if [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
               echo "Adding CiCdTestingDev to projects"
-              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]')
+              projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev","package_name":"cicddev-ios"}]')
               echo "Projects after adding CiCdTestingDev: $projects"
             fi
           fi
