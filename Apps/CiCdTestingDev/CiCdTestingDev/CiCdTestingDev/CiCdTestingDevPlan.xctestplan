@@ -14,6 +14,20 @@
   "testTargets" : [
     {
       "target" : {
+        "containerPath" : "container:CiCdTestingDev.xcodeproj",
+        "identifier" : "D5A523D52EE1C323005B0248",
+        "name" : "CiCdTestingDevTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:CiCdTestingDev.xcodeproj",
+        "identifier" : "D5A523DF2EE1C323005B0248",
+        "name" : "CiCdTestingDevUITests"
+      }
+    },
+    {
+      "target" : {
         "containerPath" : "container:CiCdTestingDev\/cicddev-ios",
         "identifier" : "cicddev-iosTests",
         "name" : "cicddev-iosTests"
