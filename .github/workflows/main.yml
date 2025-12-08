@@ -29,6 +29,13 @@ jobs:
             workflow:
               - '.github/workflows/**'
 
+      - name: Resolve SPM dependencies
+        run: |
+          cd ${{ matrix.project.folder }}
+          if [ -f "Package.swift" ]; then
+            swift package resolve
+          fi
+
   tests:
     needs: detect-changes
     if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true'
@@ -37,13 +44,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Resolve SPM dependencies
-            run: |
-              cd ${{ matrix.project.folder }}
-              if [ -f "Package.swift" ]; then
-                swift package resolve
-              fi
-              
           - name: CiCdTesting
             folder: Apps/CiCdTesting/CiCdTesting/CiCdTesting
             project_file: CiCdTesting.xcodeproj
