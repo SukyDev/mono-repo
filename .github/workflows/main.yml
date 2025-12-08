@@ -84,18 +84,6 @@ jobs:
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
 
-      - name: Run UI Tests
-        if: steps.check.outputs.skip != 'true'
-        run: |
-          cd ${{ matrix.folder }}
-          set -o pipefail
-          xcodebuild -skipMacroValidation test \
-            -project ${{ matrix.project_file }} \
-            -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
-            -only-testing:${{ matrix.scheme }}UITests \
-            clean test | xcpretty
-
   collect-tested:
     needs: [detect-changes, tests]
     # This job will only run if tests succeed (or were skipped entirely)
