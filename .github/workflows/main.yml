@@ -37,6 +37,13 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: Resolve SPM dependencies
+            run: |
+              cd ${{ matrix.project.folder }}
+              if [ -f "Package.swift" ]; then
+                swift package resolve
+              fi
+              
           - name: CiCdTesting
             folder: Apps/CiCdTesting/CiCdTesting/CiCdTesting
             project_file: CiCdTesting.xcodeproj
