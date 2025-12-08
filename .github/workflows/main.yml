@@ -77,7 +77,7 @@ jobs:
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
-            -only-testing:${{ matrix.scheme }}Tests/ \
+            -only-testing:${{ matrix.scheme }}ContentViewTests/ \
             clean test | xcpretty
 
   collect-tested:
