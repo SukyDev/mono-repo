@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		D576EB002EE6E7BD0058E6C1 /* cicddev-ios in Frameworks */ = {isa = PBXBuildFile; productRef = D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */; };
 		D576EB022EE702480058E6C1 /* CustomContentView in Frameworks */ = {isa = PBXBuildFile; productRef = D576EB012EE702480058E6C1 /* CustomContentView */; };
+		D576EB152EE70F280058E6C1 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = D576EB142EE70F280058E6C1 /* ComposableArchitecture */; };
 		D5A5248F2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5248E2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan */; };
 		D5A524C62EE1D0EB005B0248 /* exportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = D5A524C52EE1D0E0005B0248 /* exportOptions.plist */; };
 /* End PBXBuildFile section */
@@ -63,6 +64,7 @@
 			files = (
 				D576EB022EE702480058E6C1 /* CustomContentView in Frameworks */,
 				D576EB002EE6E7BD0058E6C1 /* cicddev-ios in Frameworks */,
+				D576EB152EE70F280058E6C1 /* ComposableArchitecture in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,6 +137,7 @@
 			packageProductDependencies = (
 				D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */,
 				D576EB012EE702480058E6C1 /* CustomContentView */,
+				D576EB142EE70F280058E6C1 /* ComposableArchitecture */,
 			);
 			productName = CiCdTestingDev;
 			productReference = D5A523C62EE1C321005B0248 /* CiCdTestingDev.app */;
@@ -627,6 +630,11 @@
 		D576EB012EE702480058E6C1 /* CustomContentView */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CustomContentView;
+		};
+		D576EB142EE70F280058E6C1 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D5A524362EE1C40C005B0248 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
