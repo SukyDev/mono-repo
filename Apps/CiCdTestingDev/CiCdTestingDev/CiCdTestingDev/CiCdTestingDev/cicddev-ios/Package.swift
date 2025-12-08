@@ -25,31 +25,27 @@ let package = Package(
             name: "cicddev-ios",
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
-            ],
-            swiftSettings: [.enableExperimentalFeature("Macros")]
+            ]
         ),
         .testTarget(
             name: "cicddev-iosTests",
             dependencies: [
                 "cicddev-ios",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
-            ],
-            swiftSettings: [.enableExperimentalFeature("Macros")]
+            ]
         ),
         .target(
             name: "CustomContentView",
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
-            ],
-            swiftSettings: [.enableExperimentalFeature("Macros")]
+            ]
         ),
         .testTarget(
             name: "ContentViewTests",
             dependencies: [
                 "CustomContentView",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
-            ],
-            swiftSettings: [.enableExperimentalFeature("Macros")]
+            ]
         )
     ]
 )
