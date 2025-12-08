@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for proper change detection
+          fetch-depth: 0
       - uses: dorny/paths-filter@v2
         id: filter
         with:
@@ -72,6 +72,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: |
           cd ${{ matrix.folder }}
+          set -o pipefail
           xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
@@ -83,6 +84,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: |
           cd ${{ matrix.folder }}
+          set -o pipefail
           xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
@@ -90,9 +92,10 @@ jobs:
             -only-testing:${{ matrix.scheme }}UITests \
             clean test | xcpretty
 
-  # Separate job to collect tested projects
   collect-tested:
     needs: [detect-changes, tests]
+    # This job will only run if tests succeed (or were skipped entirely)
+    if: success()
     runs-on: ubuntu-latest
     outputs:
       tested-projects: ${{ steps.collect.outputs.tested-projects }}
@@ -111,12 +114,10 @@ jobs:
           
           echo "Initial projects: $projects"
           
-          # If workflow changed, test all projects
           if [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
             echo "Workflow changed, adding all projects"
             projects='[{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"},{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev"}]'
           else
-            # Otherwise, only add changed projects
             if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
               echo "Adding CiCdTesting to projects"
               projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting"}]')
@@ -133,7 +134,6 @@ jobs:
           echo "Final projects: $projects"
           echo "tested-projects=$projects" >> $GITHUB_OUTPUT
           
-          # Check if array is not empty
           project_count=$(echo "$projects" | jq 'length')
           echo "Project count: $project_count"
           
@@ -144,8 +144,9 @@ jobs:
           fi
 
   deploy:
-    needs: collect-tested
-    if: needs.collect-tested.outputs.has-projects == 'true'
+    needs: [tests, collect-tested]
+    # Explicitly require tests to succeed before deploying
+    if: needs.collect-tested.outputs.has-projects == 'true' && needs.tests.result == 'success'
     strategy:
       matrix:
         project: ${{ fromJson(needs.collect-tested.outputs.tested-projects) }}
@@ -201,13 +202,11 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
-          # Extract UUID of the provisioning profile
           PROFILE_UUID=$(
           security cms -D -i "$PP_PATH" \
           | plutil -extract UUID raw -
           )
 
-          # Copy profile with correct filename recognized by Xcode
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
       - name: Resolve SPM dependencies
