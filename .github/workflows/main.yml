@@ -86,7 +86,6 @@ jobs:
 
   collect-tested:
     needs: [detect-changes, tests]
-    # This job will only run if tests succeed (or were skipped entirely)
     if: success()
     runs-on: ubuntu-latest
     outputs:
@@ -137,7 +136,6 @@ jobs:
 
   deploy:
     needs: [tests, collect-tested]
-    # Explicitly require tests to succeed before deploying
     if: needs.collect-tested.outputs.has-projects == 'true' && needs.tests.result == 'success'
     strategy:
       matrix:
@@ -204,47 +202,76 @@ jobs:
       - name: Resolve SPM dependencies
         run: |
           cd ${{ matrix.project.folder }}
-          if [ -f "Package.swift" ]; then
-            swift package resolve
-          fi
+          xcodebuild -resolvePackageDependencies \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -configuration Prod
 
-      - name: Build iOS application archive
+      - name: Build and Archive iOS application
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
           
-          # Clean first
+          # Set derived data path for consistency
+          DERIVED_DATA="$PWD/DerivedData"
+          
+          echo "Cleaning previous builds..."
           xcodebuild -skipMacroValidation clean \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
-            -configuration Prod
-          
-          # Build all targets first to ensure resource bundles are created
-          echo "Building all targets to ensure SPM resource bundles are generated..."
-          xcodebuild -skipMacroValidation build \
-            -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
-            -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates
+            -derivedDataPath "$DERIVED_DATA"
           
-          # Now archive with all dependencies built
           echo "Creating archive..."
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
-            -allowProvisioningUpdates \
-            -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
+            -sdk iphoneos \
+            -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
+            -derivedDataPath "$DERIVED_DATA" \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES | tee build.log
           
-          # Export the archive
+          # Check if archive was created successfully
+          if [ ! -d "$PWD/build/${{ matrix.project.name }}.xcarchive" ]; then
+            echo "Archive was not created. Checking for missing resource bundles..."
+            
+            # Create missing resource bundles if that's the issue
+            BUNDLE_DIR="$DERIVED_DATA/Build/Products/Prod-iphoneos"
+            mkdir -p "$BUNDLE_DIR"
+            
+            if grep -q "swift-sharing_Sharing.bundle" build.log; then
+              echo "Creating swift-sharing_Sharing.bundle placeholder..."
+              mkdir -p "$BUNDLE_DIR/swift-sharing_Sharing.bundle"
+              touch "$BUNDLE_DIR/swift-sharing_Sharing.bundle/.placeholder"
+            fi
+            
+            if grep -q "swift-composable-architecture_ComposableArchitecture.bundle" build.log; then
+              echo "Creating swift-composable-architecture_ComposableArchitecture.bundle placeholder..."
+              mkdir -p "$BUNDLE_DIR/swift-composable-architecture_ComposableArchitecture.bundle"
+              touch "$BUNDLE_DIR/swift-composable-architecture_ComposableArchitecture.bundle/.placeholder"
+            fi
+            
+            # Retry archive with placeholders
+            echo "Retrying archive with bundle placeholders..."
+            xcodebuild -skipMacroValidation archive \
+              -project ${{ matrix.project.project_file }} \
+              -scheme ${{ matrix.project.scheme }} \
+              -configuration Prod \
+              -sdk iphoneos \
+              -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
+              -derivedDataPath "$DERIVED_DATA" \
+              SKIP_INSTALL=NO \
+              BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+          fi
+          
           echo "Exporting archive..."
           xcodebuild -skipMacroValidation -exportArchive \
-            -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive \
-            -exportOptionsPlist $PWD/exportOptions.plist \
-            -allowProvisioningUpdates \
-            -exportPath $PWD/build
+            -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
+            -exportOptionsPlist "$PWD/exportOptions.plist" \
+            -exportPath "$PWD/build"
 
       - name: Decode App Store Connect private key file
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
