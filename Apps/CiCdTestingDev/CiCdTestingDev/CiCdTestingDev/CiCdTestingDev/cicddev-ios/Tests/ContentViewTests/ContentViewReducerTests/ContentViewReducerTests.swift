@@ -19,7 +19,7 @@ final class CustomContentViewReducerTests: XCTestCase {
         }
 
         await store.send(.onAppear) {
-            $0.onAppear = true
+            $0.onAppear = false
         }
     }
 }
