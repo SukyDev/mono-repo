@@ -6,12 +6,19 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
+import cicddev_ios
+import CustomContentView
 
 @main
 struct CiCdTestingDevApp: App {
+    let store = Store(initialState: ContentViewReducer.State()) {
+        ContentViewReducer()
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            CustomContentView(store: store)
         }
     }
 }

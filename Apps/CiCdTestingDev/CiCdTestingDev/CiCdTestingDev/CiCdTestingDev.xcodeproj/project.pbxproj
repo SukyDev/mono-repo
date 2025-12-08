@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D576EB002EE6E7BD0058E6C1 /* cicddev-ios in Frameworks */ = {isa = PBXBuildFile; productRef = D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */; };
+		D576EB022EE702480058E6C1 /* CustomContentView in Frameworks */ = {isa = PBXBuildFile; productRef = D576EB012EE702480058E6C1 /* CustomContentView */; };
 		D5A5248F2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5248E2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan */; };
 		D5A524C62EE1D0EB005B0248 /* exportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = D5A524C52EE1D0E0005B0248 /* exportOptions.plist */; };
 /* End PBXBuildFile section */
@@ -59,6 +61,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D576EB022EE702480058E6C1 /* CustomContentView in Frameworks */,
+				D576EB002EE6E7BD0058E6C1 /* cicddev-ios in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +83,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D576EAFE2EE6E7BD0058E6C1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D5A523BD2EE1C321005B0248 = {
 			isa = PBXGroup;
 			children = (
@@ -87,6 +98,7 @@
 				D5A523C82EE1C321005B0248 /* CiCdTestingDev */,
 				D5A523D92EE1C323005B0248 /* CiCdTestingDevTests */,
 				D5A523E32EE1C323005B0248 /* CiCdTestingDevUITests */,
+				D576EAFE2EE6E7BD0058E6C1 /* Frameworks */,
 				D5A523C72EE1C321005B0248 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -121,6 +133,8 @@
 			);
 			name = CiCdTestingDev;
 			packageProductDependencies = (
+				D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */,
+				D576EB012EE702480058E6C1 /* CustomContentView */,
 			);
 			productName = CiCdTestingDev;
 			productReference = D5A523C62EE1C321005B0248 /* CiCdTestingDev.app */;
@@ -604,6 +618,17 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = "cicddev-ios";
+		};
+		D576EB012EE702480058E6C1 /* CustomContentView */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CustomContentView;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D5A523BE2EE1C321005B0248 /* Project object */;
 }
