@@ -213,14 +213,14 @@ jobs:
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
-          xcodebuild clean -project ${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
+          xcodebuild -skipMacroValidation clean -project ${{ matrix.project.project_file }} -scheme ${{ matrix.project.scheme }} -configuration Prod
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -configuration Prod \
             -allowProvisioningUpdates \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive
-          xcodebuild -exportArchive \
+          xcodebuild -skipMacroValidation -exportArchive \
             -archivePath $PWD/build/${{ matrix.project.name }}.xcarchive \
             -exportOptionsPlist $PWD/exportOptions.plist \
             -allowProvisioningUpdates \
