@@ -46,28 +46,42 @@ jobs:
             scheme: CiCdTesting
             package_name: cicd-ios
             test_target: ContentViewTests
-            changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.commonpackage == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
           - name: CiCdTestingDev
             folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
             package_name: cicddev-ios
             test_target: ContentViewTests
-            changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.commonpackage == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if project changed
+      - name: Check if project should run
         id: check
         run: |
-          if [ "${{ matrix.changed }}" != "true" ]; then
-            echo "Project ${{ matrix.name }} did not change, skipping"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "Project ${{ matrix.name }} changed, running tests"
+          # Check if CommonPackage or workflow changed (run all projects)
+          if [ "${{ needs.detect-changes.outputs.commonpackage }}" == "true" ] || [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
+            echo "CommonPackage or workflow changed - running all projects"
             echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+          
+          # Check if this specific project changed
+          if [ "${{ matrix.name }}" == "CiCdTesting" ] && [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
+            echo "CiCdTesting changed - running tests"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [ "${{ matrix.name }}" == "CiCdTestingDev" ] && [ "${{ needs.detect-changes.outputs.cicdtestingdev }}" == "true" ]; then
+            echo "CiCdTestingDev changed - running tests"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Otherwise skip
+          echo "Project ${{ matrix.name }} did not change - skipping"
+          echo "skip=true" >> $GITHUB_OUTPUT
 
       - name: Select Xcode
         if: steps.check.outputs.skip != 'true'
