@@ -207,6 +207,7 @@
 			packageReferences = (
 				D5A523AA2EE1C29B005B0248 /* XCRemoteSwiftPackageReference "xcore" */,
 				D5A523AB2EE1C2B2005B0248 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				D594D99E2EE8311100D46AAE /* XCLocalSwiftPackageReference "../../../../Packages/Sources/CommonPackage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D5A523692EE1BEEF005B0248 /* Products */;
@@ -585,6 +586,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D594D99E2EE8311100D46AAE /* XCLocalSwiftPackageReference "../../../../Packages/Sources/CommonPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../../Packages/Sources/CommonPackage;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		D5A523AA2EE1C29B005B0248 /* XCRemoteSwiftPackageReference "xcore" */ = {
