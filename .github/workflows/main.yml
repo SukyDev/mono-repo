@@ -13,6 +13,7 @@ jobs:
     outputs:
       cicdtesting: ${{ steps.filter.outputs.cicdtesting }}
       cicdtestingdev: ${{ steps.filter.outputs.cicdtestingdev }}
+      commonpackage: ${{ steps.filter.outputs.commonpackage }}
       workflow-changed: ${{ steps.filter.outputs.workflow }}
     steps:
       - uses: actions/checkout@v4
@@ -26,12 +27,14 @@ jobs:
               - 'Apps/CiCdTesting/**'
             cicdtestingdev:
               - 'Apps/CiCdTestingDev/**'
+            commonpackage:
+              - 'CommonPackage/**'
             workflow:
               - '.github/workflows/**'
 
   tests:
     needs: detect-changes
-    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true'
+    if: needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.commonpackage == 'true' || needs.detect-changes.outputs.workflow-changed == 'true'
     runs-on: macos-latest
 
     strategy:
@@ -43,14 +46,14 @@ jobs:
             scheme: CiCdTesting
             package_name: cicd-ios
             test_target: ContentViewTests
-            changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
+            changed: ${{ needs.detect-changes.outputs.cicdtesting == 'true' || needs.detect-changes.outputs.commonpackage == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
           - name: CiCdTestingDev
             folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
             package_name: cicddev-ios
             test_target: ContentViewTests
-            changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
+            changed: ${{ needs.detect-changes.outputs.cicdtestingdev == 'true' || needs.detect-changes.outputs.commonpackage == 'true' || needs.detect-changes.outputs.workflow-changed == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +99,7 @@ jobs:
         run: |
           echo "cicdtesting output: '${{ needs.detect-changes.outputs.cicdtesting }}'"
           echo "cicdtestingdev output: '${{ needs.detect-changes.outputs.cicdtestingdev }}'"
+          echo "commonpackage output: '${{ needs.detect-changes.outputs.commonpackage }}'"
           echo "workflow-changed output: '${{ needs.detect-changes.outputs.workflow-changed }}'"
       
       - name: Collect tested projects
@@ -105,10 +109,12 @@ jobs:
           
           echo "Initial projects: $projects"
           
-          if [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
-            echo "Workflow changed, adding all projects"
+          # If CommonPackage or workflow changed, add all projects
+          if [ "${{ needs.detect-changes.outputs.commonpackage }}" == "true" ] || [ "${{ needs.detect-changes.outputs.workflow-changed }}" == "true" ]; then
+            echo "CommonPackage or workflow changed, adding all projects"
             projects='[{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting","package_name":"cicd-ios"},{"name":"CiCdTestingDev","folder":"Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev","project_file":"CiCdTestingDev.xcodeproj","scheme":"CiCdTestingDev","package_name":"cicddev-ios"}]'
           else
+            # Otherwise, only add projects that changed
             if [ "${{ needs.detect-changes.outputs.cicdtesting }}" == "true" ]; then
               echo "Adding CiCdTesting to projects"
               projects=$(echo "$projects" | jq -c '. += [{"name":"CiCdTesting","folder":"Apps/CiCdTesting/CiCdTesting/CiCdTesting","project_file":"CiCdTesting.xcodeproj","scheme":"CiCdTesting","package_name":"cicd-ios"}]')
@@ -136,7 +142,7 @@ jobs:
 
   deploy:
     needs: [tests, collect-tested]
-    if: needs.collect-tested.outputs.has-projects == 'true' && needs.tests.result == 'success'
+    if: needs.collect-tested.outputs.has-projects == 'true' && needs.tests.result == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     strategy:
       matrix:
         project: ${{ fromJson(needs.collect-tested.outputs.tested-projects) }}
@@ -204,10 +210,9 @@ jobs:
           cd ${{ matrix.project.folder }}
           xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
+            -scheme ${{ matrix.project.scheme }}
 
       - name: Build and Archive iOS application
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
@@ -270,7 +275,6 @@ jobs:
             -exportPath "$PWD/build"
 
       - name: Decode App Store Connect private key file
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           API_KEY_BASE64: ${{ secrets.API_KEY_BASE64 }}
           API_KEY: ${{ secrets.KEY_ID }}     
@@ -279,7 +283,6 @@ jobs:
           echo -n "$API_KEY_BASE64" | base64 --decode -o ~/private_keys/AuthKey_$API_KEY.p8
 
       - name: Upload to App Store Connect
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           ISSUER_ID: ${{ secrets.ISSUER_ID }}          
           API_KEY: ${{ secrets.KEY_ID }}     
