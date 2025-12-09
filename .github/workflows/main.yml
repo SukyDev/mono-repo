@@ -205,7 +205,6 @@ jobs:
           xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
-            -configuration Prod
 
       - name: Build and Archive iOS application
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -220,14 +219,12 @@ jobs:
           xcodebuild -skipMacroValidation clean \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
-            -configuration Prod \
             -derivedDataPath "$DERIVED_DATA"
           
           echo "Creating archive..."
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
-            -configuration Prod \
             -sdk iphoneos \
             -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
             -derivedDataPath "$DERIVED_DATA" \
@@ -259,7 +256,6 @@ jobs:
             xcodebuild -skipMacroValidation archive \
               -project ${{ matrix.project.project_file }} \
               -scheme ${{ matrix.project.scheme }} \
-              -configuration Prod \
               -sdk iphoneos \
               -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
               -derivedDataPath "$DERIVED_DATA" \
