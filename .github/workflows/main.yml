@@ -87,7 +87,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2.0'
+          xcode-version: '16.4.0'
 
       - name: Run Reducer Tests
         if: steps.check.outputs.skip != 'true'
@@ -97,7 +97,7 @@ jobs:
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=16.0' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
 
@@ -177,7 +177,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2.0'
+          xcode-version: '16.4.0'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
