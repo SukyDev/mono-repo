@@ -28,7 +28,7 @@ jobs:
             cicdtestingdev:
               - 'Apps/CiCdTestingDev/**'
             commonpackage:
-              - 'CommonPackage/**'
+              - 'Packages/Sources/CommonPackage/**'
             workflow:
               - '.github/workflows/**'
 
