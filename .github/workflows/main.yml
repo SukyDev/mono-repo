@@ -230,16 +230,25 @@ jobs:
         run: |
           cd ${{ matrix.project.folder }}
           cat exportOptions.plist
-          
+    
           # Set derived data path for consistency
           DERIVED_DATA="$PWD/DerivedData"
-          
+    
           echo "Cleaning previous builds..."
+          rm -rf "$DERIVED_DATA"
+          rm -rf "$PWD/build"
+    
           xcodebuild -skipMacroValidation clean \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
-          
+    
+          echo "Resolving package dependencies..."
+          xcodebuild -resolvePackageDependencies \
+            -project ${{ matrix.project.project_file }} \
+            -scheme ${{ matrix.project.scheme }} \
+            -derivedDataPath "$DERIVED_DATA"
+    
           echo "Creating archive..."
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
@@ -248,40 +257,16 @@ jobs:
             -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
             -derivedDataPath "$DERIVED_DATA" \
             SKIP_INSTALL=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=YES | tee build.log
-          
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            -quiet | tee build.log
+    
           # Check if archive was created successfully
           if [ ! -d "$PWD/build/${{ matrix.project.name }}.xcarchive" ]; then
-            echo "Archive was not created. Checking for missing resource bundles..."
-            
-            # Create missing resource bundles if that's the issue
-            BUNDLE_DIR="$DERIVED_DATA/Build/Products/Prod-iphoneos"
-            mkdir -p "$BUNDLE_DIR"
-            
-            if grep -q "swift-sharing_Sharing.bundle" build.log; then
-              echo "Creating swift-sharing_Sharing.bundle placeholder..."
-              mkdir -p "$BUNDLE_DIR/swift-sharing_Sharing.bundle"
-              touch "$BUNDLE_DIR/swift-sharing_Sharing.bundle/.placeholder"
-            fi
-            
-            if grep -q "swift-composable-architecture_ComposableArchitecture.bundle" build.log; then
-              echo "Creating swift-composable-architecture_ComposableArchitecture.bundle placeholder..."
-              mkdir -p "$BUNDLE_DIR/swift-composable-architecture_ComposableArchitecture.bundle"
-              touch "$BUNDLE_DIR/swift-composable-architecture_ComposableArchitecture.bundle/.placeholder"
-            fi
-            
-            # Retry archive with placeholders
-            echo "Retrying archive with bundle placeholders..."
-            xcodebuild -skipMacroValidation archive \
-              -project ${{ matrix.project.project_file }} \
-              -scheme ${{ matrix.project.scheme }} \
-              -sdk iphoneos \
-              -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
-              -derivedDataPath "$DERIVED_DATA" \
-              SKIP_INSTALL=NO \
-              BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+            echo "Error: Archive was not created"
+            cat build.log
+            exit 1
           fi
-          
+    
           echo "Exporting archive..."
           xcodebuild -skipMacroValidation -exportArchive \
             -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
