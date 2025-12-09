@@ -16,7 +16,7 @@ public struct CustomContentView: View {
         self.store = store
     }
 
-    var text: String = "Test text"
+    var text: String = "Test texts"
     public var body: some View {
         VStack {
             Image(systemName: "globe")
