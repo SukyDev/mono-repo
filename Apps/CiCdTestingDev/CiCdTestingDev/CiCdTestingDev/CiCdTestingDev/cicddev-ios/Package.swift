@@ -16,7 +16,13 @@ let package = Package(
         .library(name: "CustomContentView", targets: ["CustomContentView"])
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", .upToNextMajor(from: "1.14.0"))
+        .package(url: "https://github.com/luismachado/xcore", .upToNextMajor(from: "1.0.1")),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", .upToNextMajor(from: "1.14.0")),
+        .package(path: "../../../Packages/CommonPackage"),
+        .package(
+            url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
+            .exactItem("1.17.5")
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -40,11 +46,20 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
         ),
+        .target(
+            name: "XCTestSupport",
+            dependencies: [
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "Xcore", package: "Xcore")
+            ],
+            path: "Tests/XCTestSupport"
+        ),
         .testTarget(
             name: "ContentViewTests",
             dependencies: [
                 "CustomContentView",
-                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing")
             ]
         )
     ]
