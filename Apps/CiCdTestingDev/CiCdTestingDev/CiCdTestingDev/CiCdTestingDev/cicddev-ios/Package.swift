@@ -21,7 +21,7 @@ let package = Package(
         .package(path: "../../../Packages/CommonPackage"),
         .package(
             url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
-            .exactItem("1.17.5")
+            from: "1.18.2"
         )
     ],
     targets: [
