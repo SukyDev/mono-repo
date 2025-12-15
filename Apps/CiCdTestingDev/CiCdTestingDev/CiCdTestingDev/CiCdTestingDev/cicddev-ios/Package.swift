@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "cicddev-ios",
     platforms: [
-            .iOS(.v15)   // or .iOS(.v18) — both OK
+            .iOS(.v18)   // or .iOS(.v18) — both OK
         ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -58,6 +58,7 @@ let package = Package(
             name: "ContentViewTests",
             dependencies: [
                 "CustomContentView",
+                "XCTestSupport",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing")
             ]

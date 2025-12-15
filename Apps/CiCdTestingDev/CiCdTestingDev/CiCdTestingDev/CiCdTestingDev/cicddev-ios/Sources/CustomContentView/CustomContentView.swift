@@ -10,7 +10,7 @@ import Combine
 import ComposableArchitecture
 
 public struct CustomContentView: View {
-    @ComposableArchitecture.Bindable private var store: StoreOf<ContentViewReducer>
+    @Bindable private var store: StoreOf<ContentViewReducer>
 
     public init(store: StoreOf<ContentViewReducer>) {
         self.store = store
