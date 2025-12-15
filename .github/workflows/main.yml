@@ -46,12 +46,14 @@ jobs:
             scheme: CiCdTesting
             package_name: cicd-ios
             test_target: ContentViewTests
+            snapshot_reference_dir: cicd-ios/Tests/XCTestSupport/ReferenceImages
           - name: CiCdTestingDev
             folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
             package_name: cicddev-ios
             test_target: ContentViewTests
+            snapshot_reference_dir: cicddev-ios/Tests/XCTestSupport/ReferenceImages
 
     steps:
       - uses: actions/checkout@v4
@@ -89,17 +91,79 @@ jobs:
         with:
           xcode-version: '16.3.0'
 
-      - name: Run Reducer Tests
+      - name: Verify Reference Images Directory
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd ${{ matrix.folder }}
+          REFERENCE_DIR="${{ matrix.snapshot_reference_dir }}"
+          
+          echo "Checking for reference images directory: $REFERENCE_DIR"
+          
+          if [ -d "$REFERENCE_DIR" ]; then
+            echo "✅ Reference images directory exists"
+            echo "Contents:"
+            ls -la "$REFERENCE_DIR" || echo "Directory is empty"
+          else
+            echo "⚠️  Reference images directory not found at: $REFERENCE_DIR"
+            echo "Creating directory for future reference images..."
+            mkdir -p "$REFERENCE_DIR"
+          fi
+
+      - name: Run All Tests (including Snapshot Tests)
         if: steps.check.outputs.skip != 'true'
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
+          
+          # Set environment variables to point to reference images
+          export FB_REFERENCE_IMAGE_DIR="${{ matrix.snapshot_reference_dir }}"
+          export IMAGE_DIFF_DIR="$PWD/FailureDiffs"
+          
+          echo "Running all tests with snapshot reference directory: $FB_REFERENCE_IMAGE_DIR"
+          
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4' \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
+          
+          # Check if snapshot tests failed
+          if [ -d "$IMAGE_DIFF_DIR" ]; then
+            echo "⚠️  Snapshot test failures detected. Image diffs have been generated."
+          fi
+
+      - name: Upload Snapshot Test Failures
+        if: failure() && steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-failures-${{ matrix.name }}
+          path: |
+            ${{ matrix.folder }}/FailureDiffs/
+            ${{ matrix.folder }}/${{ matrix.snapshot_reference_dir }}/
+          retention-days: 7
+
+      - name: Comment Snapshot Test Results on PR
+        if: failure() && github.event_name == 'pull_request' && steps.check.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const diffDir = '${{ matrix.folder }}/FailureDiffs';
+            
+            let comment = `## 📸 Snapshot Test Failures - ${{ matrix.name }}\n\n`;
+            comment += `Snapshot tests failed for this PR. `;
+            comment += `Please review the differences and update reference images if the changes are intentional.\n\n`;
+            comment += `Download the artifacts from this workflow run to see the image differences.\n`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
   collect-tested:
     needs: [detect-changes, tests]
