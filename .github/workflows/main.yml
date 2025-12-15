@@ -90,7 +90,7 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16.2.0'
-
+          
       - name: Verify Reference Images Directory
         if: steps.check.outputs.skip != 'true'
         run: |
