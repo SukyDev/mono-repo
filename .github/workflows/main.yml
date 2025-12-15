@@ -87,8 +87,8 @@ jobs:
           RUNTIME_ID="com.apple.CoreSimulator.SimRuntime.iOS-18-4"
 
           # Verify runtime exists
-          if ! xcrun simctl list runtimes | grep -q "iOS 18.4"; then
-            echo "❌ iOS 18.4 runtime not installed"
+          if ! xcrun simctl list runtimes | grep -q "iOS 18.1"; then
+            echo "❌ iOS 18.1 runtime not installed"
             xcrun simctl list runtimes
             exit 1
           fi
@@ -136,7 +136,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.1.0'
 
       - name: Verify Reference Images Exist
         if: steps.check.outputs.skip != 'true'
@@ -293,7 +293,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.1.0'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
