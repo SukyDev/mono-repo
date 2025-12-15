@@ -117,10 +117,10 @@ jobs:
           xcrun simctl list runtimes
 
           RUNTIME_ID=$(xcrun simctl list runtimes \
-            | grep -i "iOS" \
+            | grep -E '^iOS ' \
             | grep -v unavailable \
             | tail -n 1 \
-            | awk -F '[()]' '{print $2}')
+            | awk '{print $NF}')
 
           echo "Using runtime: $RUNTIME_ID"
 
