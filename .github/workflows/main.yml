@@ -110,6 +110,7 @@ jobs:
           fi
 
       - name: Create and boot iPhone SE (3rd generation) simulator
+        if: steps.check.outputs.skip != 'true'
         run: |
           set -e
 
