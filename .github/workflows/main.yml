@@ -6,12 +6,6 @@ on:
   push:
     branches: [ main, development ]
   workflow_dispatch:
-    inputs:
-      record_snapshots:
-        description: 'Record new snapshot reference images'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   detect-changes:
@@ -84,33 +78,6 @@ jobs:
           echo "Checking for image files..."
           find Apps -path "*/ReferenceImages/*.png" -o -path "*/ReferenceImages/*.jpg" 2>/dev/null || echo "No image files found"
 
-      - name: Create and boot iPhone SE (3rd generation) simulator
-        id: simulator
-        if: steps.check.outputs.skip != 'true'
-        run: |
-          set -e
-
-          RUNTIME_ID="com.apple.CoreSimulator.SimRuntime.iOS-18-6"
-
-          # Verify runtime exists
-          if ! xcrun simctl list runtimes | grep -q "iOS 18.6"; then
-            echo "❌ iOS 18.6 runtime not installed"
-            xcrun simctl list runtimes
-            exit 1
-          fi
-
-          echo "Using runtime: $RUNTIME_ID"
-
-          DEVICE_ID=$(xcrun simctl create \
-            "iPhone SE (3rd generation)" \
-            "iPhone SE (3rd generation)" \
-            "$RUNTIME_ID")
-
-          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_OUTPUT
-
-          xcrun simctl boot "$DEVICE_ID"
-          xcrun simctl bootstatus "$DEVICE_ID" -b
-
       - name: Check if project should run
         id: check
         run: |
@@ -144,6 +111,33 @@ jobs:
         with:
           xcode-version: '16.4.0'
 
+      - name: Create and boot iPhone SE (3rd generation) simulator
+        id: simulator
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          set -e
+
+          RUNTIME_ID="com.apple.CoreSimulator.SimRuntime.iOS-18-6"
+
+          # Verify runtime exists
+          if ! xcrun simctl list runtimes | grep -q "iOS 18.6"; then
+            echo "❌ iOS 18.6 runtime not installed"
+            xcrun simctl list runtimes
+            exit 1
+          fi
+
+          echo "Using runtime: $RUNTIME_ID"
+
+          DEVICE_ID=$(xcrun simctl create \
+            "iPhone SE (3rd generation)" \
+            "iPhone SE (3rd generation)" \
+            "$RUNTIME_ID")
+
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_OUTPUT
+
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
       - name: Verify Reference Images Exist
         if: steps.check.outputs.skip != 'true'
         run: |
@@ -175,17 +169,11 @@ jobs:
         env:
           FB_REFERENCE_IMAGE_DIR: ${{ matrix.snapshot_reference_dir }}
           IMAGE_DIFF_DIR: FailureDiffs
-          RECORD_MODE: ${{ github.event.inputs.record_snapshots == 'true' && '1' || '0' }}
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
           
-          if [ "$RECORD_MODE" == "1" ]; then
-            echo "🎥 RECORD MODE: Generating new reference images"
-          else
-            echo "🔍 VERIFY MODE: Comparing against reference images"
-          fi
-          
+          echo "🔍 Running tests and verifying against reference images"
           echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
@@ -195,14 +183,6 @@ jobs:
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
-
-      - name: Upload New Reference Images
-        if: steps.check.outputs.skip != 'true' && github.event.inputs.record_snapshots == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: new-reference-images-${{ matrix.name }}
-          path: ${{ matrix.folder }}/${{ matrix.snapshot_reference_dir }}/
-          retention-days: 30
 
       - name: Upload Snapshot Test Failures
         if: failure() && steps.check.outputs.skip != 'true'
@@ -358,29 +338,40 @@ jobs:
       - name: Resolve SPM dependencies
         run: |
           cd ${{ matrix.project.folder }}
-          echo "Cleaning package caches..."
-          rm -rf .build
-          rm -rf "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
-          
-          echo "Resolving package dependencies..."
+          echo "=== Resolving SPM dependencies ==="
           xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }}
           
-          echo "Checking resolved package versions..."
+          echo ""
+          echo "=== Checking Package.resolved ==="
           if [ -f "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" ]; then
             cat "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          else
+            echo "Package.resolved not found at expected location"
+            find . -name "Package.resolved" -type f
           fi
 
       - name: Build and Archive iOS application
         run: |
           cd ${{ matrix.project.folder }}
+          
+          echo "=== Export Options ==="
           cat exportOptions.plist
+          
+          echo ""
+          echo "=== Xcode Version ==="
+          xcodebuild -version
+          
+          echo ""
+          echo "=== Swift Version ==="
+          swift --version
     
           # Set derived data path for consistency
           DERIVED_DATA="$PWD/DerivedData"
     
-          echo "Cleaning previous builds..."
+          echo ""
+          echo "=== Cleaning previous builds ==="
           rm -rf "$DERIVED_DATA"
           rm -rf "$PWD/build"
     
@@ -389,13 +380,38 @@ jobs:
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
     
-          echo "Resolving package dependencies..."
+          echo ""
+          echo "=== Resolving package dependencies ==="
           xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
+          
+          echo ""
+          echo "=== Checking resolved packages ==="
+          if [ -d "$DERIVED_DATA/SourcePackages/checkouts" ]; then
+            echo "Checked out packages:"
+            ls -la "$DERIVED_DATA/SourcePackages/checkouts/"
+            
+            echo ""
+            echo "=== swift-syntax version (if exists) ==="
+            if [ -d "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax" ]; then
+              cd "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax"
+              git describe --tags 2>/dev/null || echo "No git tags found"
+              cd -
+            fi
+            
+            echo ""
+            echo "=== swift-composable-architecture version (if exists) ==="
+            if [ -d "$DERIVED_DATA/SourcePackages/checkouts/swift-composable-architecture" ]; then
+              cd "$DERIVED_DATA/SourcePackages/checkouts/swift-composable-architecture"
+              git describe --tags 2>/dev/null || echo "No git tags found"
+              cd -
+            fi
+          fi
     
-          echo "Creating archive..."
+          echo ""
+          echo "=== Creating archive ==="
           xcodebuild -skipMacroValidation archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
@@ -404,17 +420,19 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             SKIP_INSTALL=NO \
             BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-            ONLY_ACTIVE_ARCH=NO \
-            -quiet | tee build.log
+            | tee build.log
     
           # Check if archive was created successfully
           if [ ! -d "$PWD/build/${{ matrix.project.name }}.xcarchive" ]; then
-            echo "Error: Archive was not created"
-            cat build.log
+            echo ""
+            echo "=== ERROR: Archive was not created ==="
+            echo "=== Last 100 lines of build log ==="
+            tail -100 build.log
             exit 1
           fi
     
-          echo "Exporting archive..."
+          echo ""
+          echo "=== Exporting archive ==="
           xcodebuild -skipMacroValidation -exportArchive \
             -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
             -exportOptionsPlist "$PWD/exportOptions.plist" \
