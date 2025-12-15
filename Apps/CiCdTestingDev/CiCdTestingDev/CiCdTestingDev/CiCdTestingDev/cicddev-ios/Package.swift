@@ -22,7 +22,8 @@ let package = Package(
         .package(
             url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
             from: "1.18.2"
-        )
+        ),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", exact: "600.0.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
