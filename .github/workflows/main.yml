@@ -47,14 +47,14 @@ jobs:
             scheme: CiCdTesting
             package_name: cicd-ios
             test_target: ContentViewTests
-            snapshot_reference_dir: cicd-ios/Tests/XCTestSupport/ReferenceImages
+            snapshot_reference_dir: CiCdTesting/cicd-ios/Tests/XCTestSupport/ReferenceImages
           - name: CiCdTestingDev
             folder: Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev
             project_file: CiCdTestingDev.xcodeproj
             scheme: CiCdTestingDev
             package_name: cicddev-ios
             test_target: ContentViewTests
-            snapshot_reference_dir: cicddev-ios/Tests/XCTestSupport/ReferenceImages
+            snapshot_reference_dir: CiCdTestingDev/cicddev-ios/Tests/XCTestSupport/ReferenceImages
 
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,21 @@ jobs:
           lfs: true
 
       - name: Checkout LFS objects
-        run: git lfs pull
+        run: |
+          echo "Pulling LFS objects..."
+          git lfs pull
+          echo "LFS pull completed"
+
+      - name: Verify LFS files
+        run: |
+          echo "Checking LFS status..."
+          git lfs ls-files
+          echo ""
+          echo "Checking for reference images in repository..."
+          find Apps -name "ReferenceImages" -type d 2>/dev/null || echo "No ReferenceImages directories found"
+          echo ""
+          echo "Checking for image files..."
+          find Apps -path "*/ReferenceImages/*.png" -o -path "*/ReferenceImages/*.jpg" 2>/dev/null || echo "No image files found"
 
       - name: Check if project should run
         id: check
