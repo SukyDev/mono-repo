@@ -124,7 +124,7 @@ jobs:
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.2' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.0' \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
           
