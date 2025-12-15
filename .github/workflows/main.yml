@@ -6,6 +6,12 @@ on:
   push:
     branches: [ main, development ]
   workflow_dispatch:
+    inputs:
+      record_snapshots:
+        description: 'Record new snapshot reference images'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   detect-changes:
@@ -169,11 +175,17 @@ jobs:
         env:
           FB_REFERENCE_IMAGE_DIR: ${{ matrix.snapshot_reference_dir }}
           IMAGE_DIFF_DIR: FailureDiffs
+          RECORD_MODE: ${{ github.event.inputs.record_snapshots == 'true' && '1' || '0' }}
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
           
-          echo "🔍 Running tests and verifying against reference images"
+          if [ "$RECORD_MODE" == "1" ]; then
+            echo "🎥 RECORD MODE: Generating new reference images"
+          else
+            echo "🔍 VERIFY MODE: Comparing against reference images"
+          fi
+          
           echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
@@ -183,6 +195,14 @@ jobs:
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
+
+      - name: Upload New Reference Images
+        if: steps.check.outputs.skip != 'true' && github.event.inputs.record_snapshots == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-reference-images-${{ matrix.name }}
+          path: ${{ matrix.folder }}/${{ matrix.snapshot_reference_dir }}/
+          retention-days: 30
 
       - name: Upload Snapshot Test Failures
         if: failure() && steps.check.outputs.skip != 'true'
@@ -338,9 +358,19 @@ jobs:
       - name: Resolve SPM dependencies
         run: |
           cd ${{ matrix.project.folder }}
+          echo "Cleaning package caches..."
+          rm -rf .build
+          rm -rf "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          
+          echo "Resolving package dependencies..."
           xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }}
+          
+          echo "Checking resolved package versions..."
+          if [ -f "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" ]; then
+            cat "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          fi
 
       - name: Build and Archive iOS application
         run: |
@@ -374,6 +404,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             SKIP_INSTALL=NO \
             BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            ONLY_ACTIVE_ARCH=NO \
             -quiet | tee build.log
     
           # Check if archive was created successfully
