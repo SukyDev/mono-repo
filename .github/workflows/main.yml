@@ -401,7 +401,7 @@ Commit: ${{ github.sha }}"
           rm -rf "$PWD/build"
     
           xcodebuild -skipMacroValidation clean \
-            -project ${{ matrix.project.file }} \
+            -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
     
