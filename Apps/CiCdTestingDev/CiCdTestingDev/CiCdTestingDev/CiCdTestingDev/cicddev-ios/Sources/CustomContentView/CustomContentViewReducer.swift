@@ -28,6 +28,7 @@ public struct ContentViewReducer {
             switch action {
                 case .onAppear:
                     state.onAppear = true
+                    
                     return .none
             }
         }
