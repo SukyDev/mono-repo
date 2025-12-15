@@ -109,6 +109,32 @@ jobs:
             mkdir -p "$REFERENCE_DIR"
           fi
 
+      - name: Create and boot iPhone SE (3rd generation) simulator
+        run: |
+          set -e
+
+          echo "Available runtimes:"
+          xcrun simctl list runtimes
+
+          RUNTIME_ID=$(xcrun simctl list runtimes \
+            | grep -i "iOS" \
+            | grep -v unavailable \
+            | tail -n 1 \
+            | awk -F '[()]' '{print $2}')
+
+          echo "Using runtime: $RUNTIME_ID"
+
+          DEVICE_ID=$(xcrun simctl create \
+            "iPhone SE (3rd generation)" \
+            "iPhone SE (3rd generation)" \
+            "$RUNTIME_ID")
+
+          echo "Created simulator: $DEVICE_ID"
+
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+
       - name: Run All Tests (including Snapshot Tests)
         if: steps.check.outputs.skip != 'true'
         run: |
@@ -124,7 +150,7 @@ jobs:
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
             -only-testing:${{ matrix.test_target }} \
             clean test | xcpretty
           
