@@ -18,7 +18,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/luismachado/xcore", .upToNextMajor(from: "1.0.1")),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", .upToNextMajor(from: "1.14.0")),
-        .package(path: "../../../Packages/CommonPackage"),
+        .package(path: "../../../Packages/Sources/CommonPackage"),
         .package(
             url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
             from: "1.18.2"
