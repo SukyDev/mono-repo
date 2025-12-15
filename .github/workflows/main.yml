@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          lfs: true
       - uses: dorny/paths-filter@v2
         id: filter
         with:
@@ -57,6 +58,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout LFS objects
+        run: git lfs pull
 
       - name: Check if project should run
         id: check
@@ -91,22 +98,30 @@ jobs:
         with:
           xcode-version: '16.4.0'
           
-      - name: Verify Reference Images Directory
+      - name: Check Reference Images and Determine Mode
         if: steps.check.outputs.skip != 'true'
+        id: snapshot-mode
         run: |
           cd ${{ matrix.folder }}
           REFERENCE_DIR="${{ matrix.snapshot_reference_dir }}"
           
           echo "Checking for reference images directory: $REFERENCE_DIR"
           
-          if [ -d "$REFERENCE_DIR" ]; then
-            echo "✅ Reference images directory exists"
-            echo "Contents:"
-            ls -la "$REFERENCE_DIR" || echo "Directory is empty"
+          # Create directory if it doesn't exist
+          mkdir -p "$REFERENCE_DIR"
+          
+          # Count existing reference images
+          IMAGE_COUNT=$(find "$REFERENCE_DIR" -type f \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | wc -l | tr -d ' ')
+          
+          if [ "$IMAGE_COUNT" -eq 0 ]; then
+            echo "⚠️  No reference images found. Will run in RECORD mode."
+            echo "mode=record" >> $GITHUB_OUTPUT
+            echo "RECORD_MODE=1" >> $GITHUB_ENV
           else
-            echo "⚠️  Reference images directory not found at: $REFERENCE_DIR"
-            echo "Creating directory for future reference images..."
-            mkdir -p "$REFERENCE_DIR"
+            echo "✅ Found $IMAGE_COUNT reference images. Will run in VERIFY mode."
+            ls -la "$REFERENCE_DIR"
+            echo "mode=verify" >> $GITHUB_OUTPUT
+            echo "RECORD_MODE=0" >> $GITHUB_ENV
           fi
 
       - name: Create and boot iPhone SE (3rd generation) simulator
@@ -138,26 +153,83 @@ jobs:
 
       - name: Run All Tests (including Snapshot Tests)
         if: steps.check.outputs.skip != 'true'
+        env:
+          FB_REFERENCE_IMAGE_DIR: ${{ matrix.snapshot_reference_dir }}
+          IMAGE_DIFF_DIR: FailureDiffs
         run: |
           cd ${{ matrix.folder }}
           set -o pipefail
           
-          # Set environment variables to point to reference images
-          export FB_REFERENCE_IMAGE_DIR="${{ matrix.snapshot_reference_dir }}"
-          export IMAGE_DIFF_DIR="$PWD/FailureDiffs"
+          if [ "${{ steps.snapshot-mode.outputs.mode }}" == "record" ]; then
+            echo "🎥 Running tests in RECORD mode - will generate reference images"
+          else
+            echo "🔍 Running tests in VERIFY mode - will compare against reference images"
+          fi
           
-          echo "Running all tests with snapshot reference directory: $FB_REFERENCE_IMAGE_DIR"
+          echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
+          echo "Image diff directory: $IMAGE_DIFF_DIR"
           
+          # Run tests (allow failure for now so we can capture artifacts)
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
-            clean test | xcpretty
+            clean test | xcpretty || true
           
-          # Check if snapshot tests failed
+          # Check results
           if [ -d "$IMAGE_DIFF_DIR" ]; then
-            echo "⚠️  Snapshot test failures detected. Image diffs have been generated."
+            echo "⚠️ Snapshot test failures detected. Image diffs have been generated."
+            exit 1
+          fi
+
+      - name: Commit New Reference Images
+        if: steps.check.outputs.skip != 'true' && steps.snapshot-mode.outputs.mode == 'record'
+        run: |
+          cd ${{ matrix.folder }}
+          REFERENCE_DIR="${{ matrix.snapshot_reference_dir }}"
+          
+          # Check if new images were created
+          NEW_IMAGE_COUNT=$(find "$REFERENCE_DIR" -type f \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | wc -l | tr -d ' ')
+          
+          if [ "$NEW_IMAGE_COUNT" -gt 0 ]; then
+            echo "📸 Found $NEW_IMAGE_COUNT new reference images"
+            ls -la "$REFERENCE_DIR"
+            
+            # Configure git
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Ensure LFS is tracking these files
+            cd "${{ github.workspace }}"
+            
+            # Track image files with LFS if not already tracked
+            if ! grep -q "ReferenceImages/\*\*.png" .gitattributes 2>/dev/null; then
+              echo "Apps/**/ReferenceImages/**/*.png filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+              echo "Apps/**/ReferenceImages/**/*.jpg filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+              git add .gitattributes
+            fi
+            
+            # Add the new images
+            git add "${{ matrix.folder }}/$REFERENCE_DIR"
+            
+            # Check if there are changes to commit
+            if git diff --staged --quiet; then
+              echo "No new reference images to commit"
+            else
+              git commit -m "Add snapshot reference images for ${{ matrix.name }}
+
+Generated by GitHub Actions
+Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+Commit: ${{ github.sha }}"
+              
+              # Push to the branch
+              git push origin HEAD:${{ github.ref_name }}
+              
+              echo "✅ Successfully committed and pushed new reference images"
+            fi
+          else
+            echo "⚠️ No new reference images were created"
           fi
 
       - name: Upload Snapshot Test Failures
@@ -169,21 +241,20 @@ jobs:
             ${{ matrix.folder }}/FailureDiffs/
             ${{ matrix.folder }}/${{ matrix.snapshot_reference_dir }}/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Comment Snapshot Test Results on PR
-        if: failure() && github.event_name == 'pull_request' && steps.check.outputs.skip != 'true'
+        if: failure() && github.event_name == 'pull_request' && steps.check.outputs.skip != 'true' && steps.snapshot-mode.outputs.mode == 'verify'
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            const diffDir = '${{ matrix.folder }}/FailureDiffs';
-            
             let comment = `## 📸 Snapshot Test Failures - ${{ matrix.name }}\n\n`;
             comment += `Snapshot tests failed for this PR. `;
-            comment += `Please review the differences and update reference images if the changes are intentional.\n\n`;
-            comment += `Download the artifacts from this workflow run to see the image differences.\n`;
+            comment += `The UI has changed from the reference images.\n\n`;
+            comment += `**Next Steps:**\n`;
+            comment += `1. Download the \`snapshot-failures-${{ matrix.name }}\` artifact from this workflow run\n`;
+            comment += `2. Review the image differences in the \`FailureDiffs/\` folder\n`;
+            comment += `3. If changes are intentional, update reference images locally and commit them\n`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -330,7 +401,7 @@ jobs:
           rm -rf "$PWD/build"
     
           xcodebuild -skipMacroValidation clean \
-            -project ${{ matrix.project.project_file }} \
+            -project ${{ matrix.project.file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
     
