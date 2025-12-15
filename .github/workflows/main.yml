@@ -109,29 +109,29 @@ jobs:
             mkdir -p "$REFERENCE_DIR"
           fi
 
-        - name: Create and boot iPhone SE (3rd generation) simulator
-          id: simulator
-          if: steps.check.outputs.skip != 'true'
-          run: |
-            set -e
+      - name: Create and boot iPhone SE (3rd generation) simulator
+        id: simulator
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          set -e
 
-            RUNTIME_ID=$(xcrun simctl list runtimes \
-              | grep -E '^iOS ' \
-              | grep -v unavailable \
-              | tail -n 1 \
-              | awk '{print $NF}')
+          RUNTIME_ID=$(xcrun simctl list runtimes \
+            | grep -E '^iOS ' \
+            | grep -v unavailable \
+            | tail -n 1 \
+            | awk '{print $NF}')
 
-            echo "Using runtime: $RUNTIME_ID"
+          echo "Using runtime: $RUNTIME_ID"
 
-            DEVICE_ID=$(xcrun simctl create \
-              "iPhone SE (3rd generation)" \
-              "iPhone SE (3rd generation)" \
-              "$RUNTIME_ID")
+          DEVICE_ID=$(xcrun simctl create \
+            "iPhone SE (3rd generation)" \
+            "iPhone SE (3rd generation)" \
+            "$RUNTIME_ID")
 
-            echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_OUTPUT
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_OUTPUT
 
-            xcrun simctl boot "$DEVICE_ID"
-            xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
 
 
       - name: Run All Tests (including Snapshot Tests)
