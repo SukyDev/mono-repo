@@ -378,6 +378,32 @@ jobs:
           rm -rf ~/Library/org.swift.swiftpm/
           rm -rf ~/.swiftpm/
           
+          echo ""
+          echo "=== Environment Comparison ==="
+          echo "macOS version:"
+          sw_vers
+          echo ""
+          echo "Xcode path:"
+          xcode-select -p
+          echo ""
+          echo "Available Xcodes:"
+          ls -la /Applications/ | grep Xcode
+          echo ""
+          echo "Current Xcode:"
+          xcodebuild -version
+          echo ""
+          echo "Swift version:"
+          swift --version
+          echo ""
+          echo "Checking if this is a clean build:"
+          if [ -d "$DERIVED_DATA" ]; then
+            echo "DerivedData exists (not clean)"
+            ls -la "$DERIVED_DATA" | head -20
+          else
+            echo "DerivedData does not exist (clean)"
+          fi
+          
+          echo ""
           echo "=== Export Options ==="
           cat exportOptions.plist
           
