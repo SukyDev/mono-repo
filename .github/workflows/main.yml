@@ -372,6 +372,12 @@ jobs:
         run: |
           cd ${{ matrix.project.folder }}
           
+          echo "=== Resetting package caches (nuclear option) ==="
+          defaults delete com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM 2>/dev/null || true
+          rm -rf ~/Library/Caches/org.swift.swiftpm/
+          rm -rf ~/Library/org.swift.swiftpm/
+          rm -rf ~/.swiftpm/
+          
           echo "=== Export Options ==="
           cat exportOptions.plist
           
@@ -459,6 +465,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             SKIP_INSTALL=NO \
             BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            OTHER_SWIFT_FLAGS="-enable-experimental-prebuilts" \
             | tee build.log
     
           # Check if archive was created successfully
