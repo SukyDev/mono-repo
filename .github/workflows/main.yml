@@ -345,19 +345,28 @@ jobs:
           rm -rf DerivedData
           
           echo ""
+          echo "=== Checking ALL Package.swift files in project ==="
+          find . -name "Package.swift" -type f -exec echo "Found: {}" \; -exec cat {} \;
+          
+          echo ""
           echo "=== Resolving SPM dependencies ==="
-          xcodebuild -skipMacroValidation -resolvePackageDependencies \
+          xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }}
           
           echo ""
           echo "=== Checking Package.resolved ==="
           if [ -f "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" ]; then
+            echo "Contents of Package.resolved:"
             cat "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
           else
             echo "Package.resolved not found at expected location"
-            find . -name "Package.resolved" -type f
+            find . -name "Package.resolved" -type f -exec echo "Found at: {}" \; -exec cat {} \;
           fi
+          
+          echo ""
+          echo "=== Checking what swift-syntax will actually be used ==="
+          grep -A 5 "swift-syntax" "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" || echo "Not found in Package.resolved"
 
       - name: Build and Archive iOS application
         run: |
@@ -394,7 +403,7 @@ jobs:
     
           echo ""
           echo "=== Resolving package dependencies ==="
-          xcodebuild -skipMacroValidation -resolvePackageDependencies \
+          xcodebuild -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
