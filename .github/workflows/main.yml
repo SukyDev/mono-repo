@@ -393,7 +393,14 @@ jobs:
           rm -rf "$PWD/.build"
           # Force clean of SPM checkouts
           if [ -d "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts" ]; then
+            echo "Removing workspace checkouts..."
             rm -rf "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts"
+          fi
+          
+          # Also clean SourcePackages
+          if [ -d "DerivedData/SourcePackages" ]; then
+            echo "Removing DerivedData/SourcePackages..."
+            rm -rf "DerivedData/SourcePackages"
           fi
     
           xcodebuild -skipMacroValidation clean \
@@ -418,8 +425,15 @@ jobs:
             echo "=== swift-syntax version (if exists) ==="
             if [ -d "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax" ]; then
               cd "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax"
+              echo "Git describe:"
               git describe --tags 2>/dev/null || echo "No git tags found"
+              echo "Git branch:"
+              git branch -a 2>/dev/null || echo "No git branch info"
+              echo "Git log (last commit):"
+              git log -1 --oneline 2>/dev/null || echo "No git log"
               cd -
+            else
+              echo "swift-syntax directory not found in checkouts"
             fi
             
             echo ""
@@ -428,7 +442,11 @@ jobs:
               cd "$DERIVED_DATA/SourcePackages/checkouts/swift-composable-architecture"
               git describe --tags 2>/dev/null || echo "No git tags found"
               cd -
+            else
+              echo "swift-composable-architecture directory not found in checkouts"
             fi
+          else
+            echo "SourcePackages/checkouts directory does not exist"
           fi
     
           echo ""
