@@ -13,12 +13,13 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/luismachado/xcore", .upToNextMajor(from: "1.0.1")),
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", .upToNextMajor(from: "1.14.0")),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", .upToNextMajor(from: "1.18.0")),
         .package(path: "../../../Packages/CommonPackage"),
         .package(
             url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
-            .exactItem("1.17.5")
-        )
+            from: "1.18.2"
+        ),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", exact: "600.0.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
