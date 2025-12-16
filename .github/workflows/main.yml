@@ -338,8 +338,15 @@ jobs:
       - name: Resolve SPM dependencies
         run: |
           cd ${{ matrix.project.folder }}
+          echo "=== Cleaning all SPM caches and checkouts ==="
+          rm -rf ~/Library/Caches/org.swift.swiftpm
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          rm -rf .build
+          rm -rf DerivedData
+          
+          echo ""
           echo "=== Resolving SPM dependencies ==="
-          xcodebuild -resolvePackageDependencies \
+          xcodebuild -skipMacroValidation -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }}
           
@@ -371,9 +378,14 @@ jobs:
           DERIVED_DATA="$PWD/DerivedData"
     
           echo ""
-          echo "=== Cleaning previous builds ==="
+          echo "=== Cleaning previous builds and ALL SPM caches ==="
           rm -rf "$DERIVED_DATA"
           rm -rf "$PWD/build"
+          rm -rf "$PWD/.build"
+          # Force clean of SPM checkouts
+          if [ -d "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts" ]; then
+            rm -rf "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts"
+          fi
     
           xcodebuild -skipMacroValidation clean \
             -project ${{ matrix.project.project_file }} \
@@ -382,7 +394,7 @@ jobs:
     
           echo ""
           echo "=== Resolving package dependencies ==="
-          xcodebuild -resolvePackageDependencies \
+          xcodebuild -skipMacroValidation -resolvePackageDependencies \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
