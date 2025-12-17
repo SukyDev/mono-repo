@@ -185,6 +185,7 @@ jobs:
           
           xcodebuild test \
             -project ${{ matrix.project_file }} \
+            -scheme ${{ matrix.scheme }} \
             -testPlan ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
