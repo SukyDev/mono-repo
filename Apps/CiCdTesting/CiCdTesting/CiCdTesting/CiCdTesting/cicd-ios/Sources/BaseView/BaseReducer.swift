@@ -28,6 +28,7 @@ public struct BaseReducer {
             switch action {
                 case .onAppear:
                     state.onAppear = true
+
                     return .none
             }
         }
