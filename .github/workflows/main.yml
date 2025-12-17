@@ -183,18 +183,14 @@ jobs:
           echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
-          # Use -testPlan if you have a .xctestplan file, otherwise use scheme
           xcodebuild test \
             -project ${{ matrix.project_file }} \
-            -scheme ${{ matrix.scheme }} \
+            -testPlan ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
             -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult \
             clean test | xcpretty
-          
-          # Optional: If using test plan, replace above with:
-          # -testPlan ${{ matrix.scheme }} \
 
       - name: Generate Code Coverage Report
         if: steps.check.outputs.skip != 'true'
