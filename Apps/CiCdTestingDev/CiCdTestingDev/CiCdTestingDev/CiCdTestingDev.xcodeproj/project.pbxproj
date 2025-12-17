@@ -10,7 +10,7 @@
 		D576EB002EE6E7BD0058E6C1 /* cicddev-ios in Frameworks */ = {isa = PBXBuildFile; productRef = D576EAFF2EE6E7BD0058E6C1 /* cicddev-ios */; };
 		D576EB022EE702480058E6C1 /* CustomContentView in Frameworks */ = {isa = PBXBuildFile; productRef = D576EB012EE702480058E6C1 /* CustomContentView */; };
 		D576EB152EE70F280058E6C1 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = D576EB142EE70F280058E6C1 /* ComposableArchitecture */; };
-		D5A5248F2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5248E2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan */; };
+		D5A5248F2EE1C49F005B0248 /* CiCdTestingDev.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5248E2EE1C49F005B0248 /* CiCdTestingDev.xctestplan */; };
 		D5A524C62EE1D0EB005B0248 /* exportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = D5A524C52EE1D0E0005B0248 /* exportOptions.plist */; };
 /* End PBXBuildFile section */
 
@@ -35,7 +35,7 @@
 		D5A523C62EE1C321005B0248 /* CiCdTestingDev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CiCdTestingDev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5A523D62EE1C323005B0248 /* CiCdTestingDevTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CiCdTestingDevTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5A523E02EE1C323005B0248 /* CiCdTestingDevUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CiCdTestingDevUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D5A5248E2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = CiCdTestingDevPlan.xctestplan; sourceTree = "<group>"; };
+		D5A5248E2EE1C49F005B0248 /* CiCdTestingDev.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = CiCdTestingDev.xctestplan; sourceTree = "<group>"; };
 		D5A524C52EE1D0E0005B0248 /* exportOptions.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = exportOptions.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -96,7 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				D5A524C52EE1D0E0005B0248 /* exportOptions.plist */,
-				D5A5248E2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan */,
+				D5A5248E2EE1C49F005B0248 /* CiCdTestingDev.xctestplan */,
 				D5A523C82EE1C321005B0248 /* CiCdTestingDev */,
 				D5A523D92EE1C323005B0248 /* CiCdTestingDevTests */,
 				D5A523E32EE1C323005B0248 /* CiCdTestingDevUITests */,
@@ -243,7 +243,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D5A5248F2EE1C49F005B0248 /* CiCdTestingDevPlan.xctestplan in Resources */,
+				D5A5248F2EE1C49F005B0248 /* CiCdTestingDev.xctestplan in Resources */,
 				D5A524C62EE1D0EB005B0248 /* exportOptions.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

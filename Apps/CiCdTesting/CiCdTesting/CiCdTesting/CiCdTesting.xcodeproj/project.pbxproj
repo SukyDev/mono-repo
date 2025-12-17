@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D5A5246B2EE1C463005B0248 /* CiCdTestingPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5246A2EE1C463005B0248 /* CiCdTestingPlan.xctestplan */; };
+		D5A5246B2EE1C463005B0248 /* CiCdTesting.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D5A5246A2EE1C463005B0248 /* CiCdTesting.xctestplan */; };
 		D5A524B32EE1D05F005B0248 /* exportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = D5A524B22EE1D053005B0248 /* exportOptions.plist */; };
 /* End PBXBuildFile section */
 
@@ -32,7 +32,7 @@
 		D5A523682EE1BEEF005B0248 /* CiCdTesting.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CiCdTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5A523782EE1BEF0005B0248 /* CiCdTestingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CiCdTestingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5A523822EE1BEF0005B0248 /* CiCdTestingUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CiCdTestingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D5A5246A2EE1C463005B0248 /* CiCdTestingPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = CiCdTestingPlan.xctestplan; sourceTree = "<group>"; };
+		D5A5246A2EE1C463005B0248 /* CiCdTesting.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = CiCdTesting.xctestplan; sourceTree = "<group>"; };
 		D5A524B22EE1D053005B0248 /* exportOptions.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = exportOptions.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -83,7 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				D5A524B22EE1D053005B0248 /* exportOptions.plist */,
-				D5A5246A2EE1C463005B0248 /* CiCdTestingPlan.xctestplan */,
+				D5A5246A2EE1C463005B0248 /* CiCdTesting.xctestplan */,
 				D5A5236A2EE1BEEF005B0248 /* CiCdTesting */,
 				D5A5237B2EE1BEF0005B0248 /* CiCdTestingTests */,
 				D5A523852EE1BEF0005B0248 /* CiCdTestingUITests */,
@@ -226,7 +226,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D5A5246B2EE1C463005B0248 /* CiCdTestingPlan.xctestplan in Resources */,
+				D5A5246B2EE1C463005B0248 /* CiCdTesting.xctestplan in Resources */,
 				D5A524B32EE1D05F005B0248 /* exportOptions.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
