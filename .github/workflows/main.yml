@@ -186,6 +186,8 @@ jobs:
           xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
+            -parallel-testing-enabled YES \
+            -maximum-parallel-testing-workers auto \
             -testPlan ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
