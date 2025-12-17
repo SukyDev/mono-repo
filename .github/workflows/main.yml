@@ -109,7 +109,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Create and boot iPhone SE (3rd generation) simulator
         id: simulator
@@ -117,11 +117,11 @@ jobs:
         run: |
           set -e
 
-          RUNTIME_ID="com.apple.CoreSimulator.SimRuntime.iOS-18-5"
+          RUNTIME_ID="com.apple.CoreSimulator.SimRuntime.iOS-18-4"
 
           # Verify runtime exists
-          if ! xcrun simctl list runtimes | grep -q "iOS 18.5"; then
-            echo "❌ iOS 18.6 runtime not installed"
+          if ! xcrun simctl list runtimes | grep -q "iOS 18.4"; then
+            echo "❌ iOS 18.4 runtime not installed"
             xcrun simctl list runtimes
             exit 1
           fi
@@ -173,7 +173,7 @@ jobs:
           cd ${{ matrix.folder }}
           set -o pipefail
           
-          echo "🔍 Running tests and verifying against reference images"
+          echo "🔍 Running tests with code coverage enabled"
           echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
@@ -182,7 +182,96 @@ jobs:
             -scheme ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
             -only-testing:${{ matrix.test_target }} \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult \
             clean test | xcpretty
+
+      - name: Generate Code Coverage Report
+        if: steps.check.outputs.skip != 'true'
+        id: coverage
+        run: |
+          cd ${{ matrix.folder }}
+          
+          echo "📊 Generating code coverage report..."
+          
+          # Export coverage as JSON
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json
+          
+          # Parse coverage percentage
+          COVERAGE=$(cat coverage.json | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          coverage = data['lineCoverage'] * 100
+          print(f'{coverage:.2f}')
+          ")
+          
+          echo "Code Coverage: ${COVERAGE}%"
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          
+          # Generate human-readable report
+          xcrun xccov view --report TestResults.xcresult > coverage-report.txt
+          
+          echo ""
+          echo "Coverage Report:"
+          cat coverage-report.txt
+
+      - name: Check Coverage Threshold
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd ${{ matrix.folder }}
+          
+          COVERAGE=${{ steps.coverage.outputs.coverage }}
+          THRESHOLD=20.0
+          
+          echo "📊 Coverage Check:"
+          echo "Current Coverage: ${COVERAGE}%"
+          echo "Required Threshold: ${THRESHOLD}%"
+          
+          # Compare coverage to threshold
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Code coverage (${COVERAGE}%) is below the required threshold (${THRESHOLD}%)"
+            exit 1
+          else
+            echo "✅ Code coverage (${COVERAGE}%) meets the required threshold (${THRESHOLD}%)"
+          fi
+
+      - name: Upload Coverage Report
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.name }}
+          path: |
+            ${{ matrix.folder }}/coverage.json
+            ${{ matrix.folder }}/coverage-report.txt
+            ${{ matrix.folder }}/TestResults.xcresult
+          retention-days: 30
+
+      - name: Comment Coverage on PR
+        if: github.event_name == 'pull_request' && steps.check.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = '${{ steps.coverage.outputs.coverage }}';
+            const threshold = 20.0;
+            const passed = parseFloat(coverage) >= threshold;
+            
+            let comment = `## 📊 Code Coverage Report - ${{ matrix.name }}\n\n`;
+            comment += `**Coverage:** ${coverage}% ${passed ? '✅' : '❌'}\n`;
+            comment += `**Threshold:** ${threshold}%\n\n`;
+            
+            if (passed) {
+              comment += `Code coverage meets the required threshold. Great job! 🎉`;
+            } else {
+              comment += `⚠️ Code coverage is below the required threshold.\n\n`;
+              comment += `Please add more tests to increase coverage above ${threshold}%.`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
       - name: Upload Snapshot Test Failures
         if: failure() && steps.check.outputs.skip != 'true'
@@ -293,7 +382,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
