@@ -5,11 +5,15 @@ import PackageDescription
 
 let package = Package(
     name: "cicd-ios",
+    platforms: [
+            .iOS(.v18)
+    ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "cicd-ios",
             targets: ["cicd-ios", "BaseView"]),
+        .library(name: "BaseView", targets: ["BaseView"])
     ],
     dependencies: [
         .package(url: "https://github.com/luismachado/xcore", .upToNextMajor(from: "1.0.1")),
@@ -30,10 +34,10 @@ let package = Package(
             dependencies: ["cicd-ios"]
         ),
         .target(
-            name: "BaseView"),
-        .testTarget(
-            name: "BaseViewTests",
-            dependencies: ["cicd-ios"]
+            name: "BaseView",
+            dependencies: [
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ]
         ),
         .target(
             name: "XCTestSupport",
@@ -47,6 +51,7 @@ let package = Package(
             name: "ContentViewTests",
             dependencies: [
                 "BaseView",
+                "XCTestSupport",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing")
             ]

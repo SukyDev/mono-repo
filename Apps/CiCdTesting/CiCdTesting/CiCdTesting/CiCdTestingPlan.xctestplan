@@ -14,6 +14,13 @@
   "testTargets" : [
     {
       "target" : {
+        "containerPath" : "container:CiCdTesting.xcodeproj",
+        "identifier" : "D5A523772EE1BEF0005B0248",
+        "name" : "CiCdTestingTests"
+      }
+    },
+    {
+      "target" : {
         "containerPath" : "container:CiCdTesting\/cicd-ios",
         "identifier" : "cicd-iosTests",
         "name" : "cicd-iosTests"
@@ -21,17 +28,9 @@
     },
     {
       "target" : {
-        "containerPath" : "container:CiCdTesting.xcodeproj",
-        "identifier" : "D5A523772EE1BEF0005B0248",
-        "name" : "CiCdTestingTests"
-      }
-    },
-    {
-      "parallelizable" : true,
-      "target" : {
         "containerPath" : "container:CiCdTesting\/cicd-ios",
-        "identifier" : "BaseViewTests",
-        "name" : "BaseViewTests"
+        "identifier" : "ContentViewTests",
+        "name" : "ContentViewTests"
       }
     }
   ],
