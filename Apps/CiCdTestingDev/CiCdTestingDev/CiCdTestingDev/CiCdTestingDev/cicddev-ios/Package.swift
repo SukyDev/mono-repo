@@ -38,6 +38,10 @@ let package = Package(
             dependencies: [
                 "cicddev-ios",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ],
+            exclude: [
+                "LegacyObjC",
+                "*.m"
             ]
         ),
         .target(
@@ -61,6 +65,10 @@ let package = Package(
                 "XCTestSupport",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing")
+            ],
+            exclude: [
+                "LegacyObjC",
+                "*.m"
             ]
         )
     ]
