@@ -163,7 +163,13 @@ jobs:
           
           echo "✅ Found $IMAGE_COUNT reference images"
           ls -la "$REFERENCE_DIR"
-
+          
+      - name: Approve Swift Macros for CLI build 
+        run: |
+          echo "=== Approving Swift Macros ===" 
+          defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES 
+          echo "Macro validation disabled for this build"
+            
       - name: Run All Tests (including Snapshot Tests)
         if: steps.check.outputs.skip != 'true'
         env:
