@@ -13,14 +13,6 @@
   },
   "testTargets" : [
     {
-      "enabled" : false,
-      "target" : {
-        "containerPath" : "container:CiCdTestingDev\/cicddev-ios",
-        "identifier" : "cicddev-iosTests",
-        "name" : "cicddev-iosTests"
-      }
-    },
-    {
       "target" : {
         "containerPath" : "container:CiCdTestingDev\/cicddev-ios",
         "identifier" : "ContentViewTests",
