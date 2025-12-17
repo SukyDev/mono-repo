@@ -109,7 +109,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Create and boot iPhone SE (3rd generation) simulator
         id: simulator
@@ -178,7 +178,7 @@ jobs:
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
           # Use -testPlan if you have a .xctestplan file, otherwise use scheme
-          xcodebuild -skipMacroValidation test \
+          xcodebuild test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
@@ -386,7 +386,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
@@ -459,7 +459,13 @@ jobs:
           
           echo ""
           echo "=== Checking what swift-syntax will actually be used ==="
-          grep -A 5 "swift-syntax" "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" || echo "Not found in Package.resolved"
+          grep -A 5 "swift-syntax" "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" || echo "Not found in Package.resolved”
+
+      - name: Approve Swift Macros for CLI build 
+        run: |
+          echo "=== Approving Swift Macros ===" 
+          defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES 
+          echo "Macro validation disabled for this build"
 
       - name: Build and Archive iOS application
         run: |
@@ -528,7 +534,7 @@ jobs:
             rm -rf "DerivedData/SourcePackages"
           fi
     
-          xcodebuild -skipMacroValidation clean \
+          xcodebuild clean \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -derivedDataPath "$DERIVED_DATA"
@@ -576,7 +582,7 @@ jobs:
     
           echo ""
           echo "=== Creating archive ==="
-          xcodebuild -skipMacroValidation archive \
+          xcodebuild archive \
             -project ${{ matrix.project.project_file }} \
             -scheme ${{ matrix.project.scheme }} \
             -sdk iphoneos \
@@ -598,7 +604,7 @@ jobs:
     
           echo ""
           echo "=== Exporting archive ==="
-          xcodebuild -skipMacroValidation -exportArchive \
+          xcodebuild -exportArchive \
             -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
             -exportOptionsPlist "$PWD/exportOptions.plist" \
             -exportPath "$PWD/build"
