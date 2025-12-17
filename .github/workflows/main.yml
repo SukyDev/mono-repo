@@ -109,7 +109,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Create and boot iPhone SE (3rd generation) simulator
         id: simulator
@@ -177,6 +177,7 @@ jobs:
           echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
           echo "Image diff directory: $IMAGE_DIFF_DIR"
           
+          # Use -testPlan if you have a .xctestplan file, otherwise use scheme
           xcodebuild -skipMacroValidation test \
             -project ${{ matrix.project_file }} \
             -scheme ${{ matrix.scheme }} \
@@ -185,6 +186,9 @@ jobs:
             -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult \
             clean test | xcpretty
+          
+          # Optional: If using test plan, replace above with:
+          # -testPlan ${{ matrix.scheme }} \
 
       - name: Generate Code Coverage Report
         if: steps.check.outputs.skip != 'true'
@@ -382,7 +386,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4.0'
+          xcode-version: '16.2.0'
 
       - name: Show build SDK
         run: xcodebuild -showsdks 
