@@ -24,15 +24,31 @@ platform :ios do
 
   desc "Run tests with code coverage"
   lane :test do |options|
-    # Get parameters
-    device_id = options[:device_id] || ENV['DEVICE_ID']
+    # Get device ID from environment (should be set by CI)
+    device_id = ENV['DEVICE_ID']
     
-    # Build destination string
     if device_id && !device_id.empty?
       destination = "platform=iOS Simulator,id=#{device_id}"
+      UI.important "🎯 Using specific device ID: #{device_id}"
     else
-      destination = "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4"
+      # Fallback: find or create iPhone SE
+      UI.important "⚠️  No DEVICE_ID provided, searching for iPhone SE..."
+      
+      # List available simulators
+      simulators = `xcrun simctl list devices available`.lines
+      iphone_se = simulators.find { |line| line.include?("iPhone SE (3rd generation)") && line.include?("18.4") }
+      
+      if iphone_se
+        # Extract UUID from the line
+        device_id = iphone_se[/([A-F0-9-]{36})/, 1]
+        destination = "platform=iOS Simulator,id=#{device_id}"
+        UI.success "Found existing iPhone SE: #{device_id}"
+      else
+        UI.user_error! "❌ No iPhone SE (3rd generation) with iOS 18.4 found and no DEVICE_ID provided"
+      end
     end
+    
+    UI.important "📱 Final destination: #{destination}"
     
     scan(
       project: "CiCdTesting.xcodeproj",
@@ -45,13 +61,10 @@ platform :ios do
       output_directory: ".",
       buildlog_path: ".",
       clean: true,
-      parallel_testing: true,
-      max_concurrent_simulators: 0, # auto
+      parallel_testing: false,
       derived_data_path: "DerivedData",
       skip_build: false,
-      disable_slide_to_type: false,
-      reset_simulator: false,
-      prelaunch_simulator: true
+      reset_simulator: false
     )
   end
 
