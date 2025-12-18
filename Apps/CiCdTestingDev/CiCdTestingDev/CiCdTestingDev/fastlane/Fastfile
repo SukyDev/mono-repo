@@ -31,7 +31,7 @@ platform :ios do
     if device_id && !device_id.empty?
       destination = "platform=iOS Simulator,id=#{device_id}"
     else
-      destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
+      destination = "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.4"
     end
     
     scan(
@@ -47,7 +47,11 @@ platform :ios do
       clean: true,
       parallel_testing: true,
       max_concurrent_simulators: 0, # auto
-      derived_data_path: "DerivedData"
+      derived_data_path: "DerivedData",
+      skip_build: false,
+      disable_slide_to_type: false,
+      reset_simulator: false,
+      prelaunch_simulator: true
     )
   end
 
