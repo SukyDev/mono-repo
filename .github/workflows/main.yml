@@ -111,6 +111,20 @@ jobs:
         with:
           xcode-version: '16.4.0'
 
+      - name: Setup Ruby
+        if: steps.check.outputs.skip != 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ${{ matrix.folder }}
+
+      - name: Install Fastlane dependencies
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd ${{ matrix.folder }}
+          bundle install
+
       - name: Create and boot iPhone SE (3rd generation) simulator
         id: simulator
         if: steps.check.outputs.skip != 'true'
@@ -170,79 +184,22 @@ jobs:
           defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES 
           echo "Macro validation disabled for this build"
             
-      - name: Run All Tests (including Snapshot Tests)
+      - name: Run Tests with Fastlane
         if: steps.check.outputs.skip != 'true'
         env:
           FB_REFERENCE_IMAGE_DIR: ${{ matrix.snapshot_reference_dir }}
           IMAGE_DIFF_DIR: FailureDiffs
+          DEVICE_ID: ${{ steps.simulator.outputs.DEVICE_ID }}
         run: |
           cd ${{ matrix.folder }}
-          set -o pipefail
-          
-          echo "🔍 Running tests with code coverage enabled"
-          echo "Reference image directory: $FB_REFERENCE_IMAGE_DIR"
-          echo "Image diff directory: $IMAGE_DIFF_DIR"
-          
-          xcodebuild test \
-            -project ${{ matrix.project_file }} \
-            -scheme ${{ matrix.scheme }} \
-            -parallel-testing-enabled YES \
-            -maximum-parallel-testing-workers auto \
-            -testPlan ${{ matrix.scheme }} \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.DEVICE_ID }}" \
-            -only-testing:${{ matrix.test_target }} \
-            -enableCodeCoverage YES \
-            -resultBundlePath TestResults.xcresult \
-            clean test | xcpretty
+          bundle exec fastlane test
 
-      - name: Generate Code Coverage Report
+      - name: Generate Coverage Report with xcov
         if: steps.check.outputs.skip != 'true'
         id: coverage
         run: |
           cd ${{ matrix.folder }}
-          
-          echo "📊 Generating code coverage report..."
-          
-          # Export coverage as JSON
-          xcrun xccov view --report --json TestResults.xcresult > coverage.json
-          
-          # Parse coverage percentage
-          COVERAGE=$(cat coverage.json | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          coverage = data['lineCoverage'] * 100
-          print(f'{coverage:.2f}')
-          ")
-          
-          echo "Code Coverage: ${COVERAGE}%"
-          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
-          
-          # Generate human-readable report
-          xcrun xccov view --report TestResults.xcresult > coverage-report.txt
-          
-          echo ""
-          echo "Coverage Report:"
-          cat coverage-report.txt
-
-      - name: Check Coverage Threshold
-        if: steps.check.outputs.skip != 'true'
-        run: |
-          cd ${{ matrix.folder }}
-          
-          COVERAGE=${{ steps.coverage.outputs.coverage }}
-          THRESHOLD=20.0
-          
-          echo "📊 Coverage Check:"
-          echo "Current Coverage: ${COVERAGE}%"
-          echo "Required Threshold: ${THRESHOLD}%"
-          
-          # Compare coverage to threshold
-          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-            echo "❌ Code coverage (${COVERAGE}%) is below the required threshold (${THRESHOLD}%)"
-            exit 1
-          else
-            echo "✅ Code coverage (${COVERAGE}%) meets the required threshold (${THRESHOLD}%)"
-          fi
+          bundle exec fastlane coverage minimum_coverage:20.0
 
       - name: Upload Coverage Report
         if: steps.check.outputs.skip != 'true'
@@ -250,9 +207,8 @@ jobs:
         with:
           name: coverage-report-${{ matrix.name }}
           path: |
-            ${{ matrix.folder }}/coverage.json
-            ${{ matrix.folder }}/coverage-report.txt
-            ${{ matrix.folder }}/TestResults.xcresult
+            ${{ matrix.folder }}/coverage_report/
+            ${{ matrix.folder }}/test_output/
           retention-days: 30
 
       - name: Comment Coverage on PR
@@ -393,6 +349,18 @@ jobs:
         with:
           xcode-version: '16.4.0'
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ${{ matrix.project.folder }}
+
+      - name: Install Fastlane dependencies
+        run: |
+          cd ${{ matrix.project.folder }}
+          bundle install
+
       - name: Show build SDK
         run: xcodebuild -showsdks 
 
@@ -433,182 +401,16 @@ jobs:
 
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-      - name: Resolve SPM dependencies
-        run: |
-          cd ${{ matrix.project.folder }}
-          echo "=== Cleaning all SPM caches and checkouts ==="
-          rm -rf ~/Library/Caches/org.swift.swiftpm
-          rm -rf ~/Library/Developer/Xcode/DerivedData/*
-          rm -rf .build
-          rm -rf DerivedData
-          
-          echo ""
-          echo "=== Checking ALL Package.swift files in project ==="
-          find . -name "Package.swift" -type f -exec echo "Found: {}" \; -exec cat {} \;
-          
-          echo ""
-          echo "=== Resolving SPM dependencies ==="
-          xcodebuild -resolvePackageDependencies \
-            -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }}
-          
-          echo ""
-          echo "=== Checking Package.resolved ==="
-          if [ -f "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" ]; then
-            echo "Contents of Package.resolved:"
-            cat "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
-          else
-            echo "Package.resolved not found at expected location"
-            find . -name "Package.resolved" -type f -exec echo "Found at: {}" \; -exec cat {} \;
-          fi
-
       - name: Approve Swift Macros for CLI build 
         run: |
           echo "=== Approving Swift Macros ===" 
           defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES 
           echo "Macro validation disabled for this build"
 
-      - name: Build and Archive iOS application
+      - name: Build and Archive with Fastlane
         run: |
           cd ${{ matrix.project.folder }}
-          
-          echo "=== Resetting package caches (nuclear option) ==="
-          defaults delete com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM 2>/dev/null || true
-          rm -rf ~/Library/Caches/org.swift.swiftpm/
-          rm -rf ~/Library/org.swift.swiftpm/
-          rm -rf ~/.swiftpm/
-          
-          echo ""
-          echo "=== Environment Comparison ==="
-          echo "macOS version:"
-          sw_vers
-          echo ""
-          echo "Xcode path:"
-          xcode-select -p
-          echo ""
-          echo "Available Xcodes:"
-          ls -la /Applications/ | grep Xcode
-          echo ""
-          echo "Current Xcode:"
-          xcodebuild -version
-          echo ""
-          echo "Swift version:"
-          swift --version
-          echo ""
-          echo "Checking if this is a clean build:"
-          if [ -d "$DERIVED_DATA" ]; then
-            echo "DerivedData exists (not clean)"
-            ls -la "$DERIVED_DATA" | head -20
-          else
-            echo "DerivedData does not exist (clean)"
-          fi
-          
-          echo ""
-          echo "=== Export Options ==="
-          cat exportOptions.plist
-          
-          echo ""
-          echo "=== Xcode Version ==="
-          xcodebuild -version
-          
-          echo ""
-          echo "=== Swift Version ==="
-          swift --version
-    
-          # Set derived data path for consistency
-          DERIVED_DATA="$PWD/DerivedData"
-    
-          echo ""
-          echo "=== Cleaning previous builds and ALL SPM caches ==="
-          rm -rf "$DERIVED_DATA"
-          rm -rf "$PWD/build"
-          rm -rf "$PWD/.build"
-          # Force clean of SPM checkouts
-          if [ -d "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts" ]; then
-            echo "Removing workspace checkouts..."
-            rm -rf "${{ matrix.project.project_file }}/project.xcworkspace/xcshareddata/swiftpm/checkouts"
-          fi
-          
-          # Also clean SourcePackages
-          if [ -d "DerivedData/SourcePackages" ]; then
-            echo "Removing DerivedData/SourcePackages..."
-            rm -rf "DerivedData/SourcePackages"
-          fi
-    
-          xcodebuild clean \
-            -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
-            -derivedDataPath "$DERIVED_DATA"
-    
-          echo ""
-          echo "=== Resolving package dependencies ==="
-          xcodebuild -resolvePackageDependencies \
-            -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
-            -derivedDataPath "$DERIVED_DATA"
-          
-          echo ""
-          echo "=== Checking resolved packages ==="
-          if [ -d "$DERIVED_DATA/SourcePackages/checkouts" ]; then
-            echo "Checked out packages:"
-            ls -la "$DERIVED_DATA/SourcePackages/checkouts/"
-            
-            echo ""
-            echo "=== swift-syntax version (if exists) ==="
-            if [ -d "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax" ]; then
-              cd "$DERIVED_DATA/SourcePackages/checkouts/swift-syntax"
-              echo "Git describe:"
-              git describe --tags 2>/dev/null || echo "No git tags found"
-              echo "Git branch:"
-              git branch -a 2>/dev/null || echo "No git branch info"
-              echo "Git log (last commit):"
-              git log -1 --oneline 2>/dev/null || echo "No git log"
-              cd -
-            else
-              echo "swift-syntax directory not found in checkouts"
-            fi
-            
-            echo ""
-            echo "=== swift-composable-architecture version (if exists) ==="
-            if [ -d "$DERIVED_DATA/SourcePackages/checkouts/swift-composable-architecture" ]; then
-              cd "$DERIVED_DATA/SourcePackages/checkouts/swift-composable-architecture"
-              git describe --tags 2>/dev/null || echo "No git tags found"
-              cd -
-            else
-              echo "swift-composable-architecture directory not found in checkouts"
-            fi
-          else
-            echo "SourcePackages/checkouts directory does not exist"
-          fi
-    
-          echo ""
-          echo "=== Creating archive ==="
-          xcodebuild archive \
-            -project ${{ matrix.project.project_file }} \
-            -scheme ${{ matrix.project.scheme }} \
-            -sdk iphoneos \
-            -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
-            -derivedDataPath "$DERIVED_DATA" \
-            SKIP_INSTALL=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-            OTHER_SWIFT_FLAGS="-enable-experimental-prebuilts" \
-            | tee build.log
-    
-          # Check if archive was created successfully
-          if [ ! -d "$PWD/build/${{ matrix.project.name }}.xcarchive" ]; then
-            echo ""
-            echo "=== ERROR: Archive was not created ==="
-            echo "=== Last 100 lines of build log ==="
-            tail -100 build.log
-            exit 1
-          fi
-    
-          echo ""
-          echo "=== Exporting archive ==="
-          xcodebuild -exportArchive \
-            -archivePath "$PWD/build/${{ matrix.project.name }}.xcarchive" \
-            -exportOptionsPlist "$PWD/exportOptions.plist" \
-            -exportPath "$PWD/build"
+          bundle exec fastlane build
 
       - name: Decode App Store Connect private key file
         env:
@@ -618,13 +420,13 @@ jobs:
           mkdir -p ~/private_keys
           echo -n "$API_KEY_BASE64" | base64 --decode -o ~/private_keys/AuthKey_$API_KEY.p8
 
-      - name: Upload to App Store Connect
+      - name: Upload to TestFlight with Fastlane
         env:
           ISSUER_ID: ${{ secrets.ISSUER_ID }}          
           API_KEY: ${{ secrets.KEY_ID }}     
         run: |
           cd ${{ matrix.project.folder }}
-          xcrun altool --upload-app -f build/${{ matrix.project.name }}.ipa -t ios --apiKey $API_KEY --apiIssuer "$ISSUER_ID"
+          bundle exec fastlane upload_to_testflight
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}
