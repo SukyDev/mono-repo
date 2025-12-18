@@ -1,0 +1,23 @@
+# .xcovignore
+
+# Ignore all Objective-C files
+*.m
+
+# Ignore object files
+*.o
+
+# Ignore generated files
+*Generated*
+*generated*
+
+# Ignore Pods if you use CocoaPods
+Pods/*
+
+# Ignore third-party dependencies
+**/Carthage/*
+**/SPM/*
+
+# You can also ignore specific directories or files
+# Example:
+# SomeDirectory/*
+# SpecificFile.swift
