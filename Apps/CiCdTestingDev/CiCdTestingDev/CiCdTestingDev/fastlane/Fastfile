@@ -1,0 +1,138 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+# Apps/CiCdTestingDev/CiCdTestingDev/CiCdTestingDev/fastlane/Fastfile
+
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    setup_ci if ENV['CI']
+  end
+
+  desc "Run tests with code coverage"
+  lane :test do |options|
+    # Get parameters
+    device_id = options[:device_id] || ENV['DEVICE_ID']
+    
+    scan(
+      project: "CiCdTestingDev.xcodeproj",
+      scheme: "CiCdTestingDev",
+      testplan: "CiCdTestingDev",
+      device: device_id ? "id=#{device_id}" : "iPhone SE (3rd generation)",
+      only_testing: ["ContentViewTests"],
+      code_coverage: true,
+      result_bundle: true,
+      output_directory: ".",
+      buildlog_path: ".",
+      clean: true,
+      parallel_testing: true,
+      max_concurrent_simulators: 0, # auto
+      derived_data_path: "DerivedData"
+    )
+  end
+
+  desc "Generate code coverage report with xcov"
+  lane :coverage do |options|
+    minimum_coverage = options[:minimum_coverage] || 20.0
+    
+    xcov(
+      scheme: "CiCdTestingDev",
+      project: "CiCdTestingDev.xcodeproj",
+      output_directory: "coverage_report",
+      json_report: true,
+      html_report: true,
+      markdown_report: true,
+      minimum_coverage_percentage: minimum_coverage,
+      include_test_targets: false,
+      only_project_targets: true
+    )
+    
+    # Read the coverage percentage
+    coverage_file = "coverage_report/index.json"
+    if File.exist?(coverage_file)
+      require 'json'
+      data = JSON.parse(File.read(coverage_file))
+      coverage = data['coverage']
+      
+      UI.success "📊 Code Coverage: #{coverage}%"
+      
+      if coverage < minimum_coverage
+        UI.user_error! "❌ Code coverage (#{coverage}%) is below threshold (#{minimum_coverage}%)"
+      else
+        UI.success "✅ Code coverage meets threshold!"
+      end
+      
+      # Export for GitHub Actions
+      if ENV['GITHUB_OUTPUT']
+        File.open(ENV['GITHUB_OUTPUT'], 'a') do |f|
+          f.puts "coverage=#{coverage}"
+        end
+      end
+    end
+  end
+
+  desc "Run tests and generate coverage report"
+  lane :test_with_coverage do |options|
+    test(options)
+    coverage(options)
+  end
+
+  desc "Build app for release"
+  lane :build do
+    clear_derived_data
+    
+    spm(
+      command: "resolve",
+      project: "CiCdTestingDev.xcodeproj"
+    )
+    
+    gym(
+      project: "CiCdTestingDev.xcodeproj",
+      scheme: "CiCdTestingDev",
+      export_method: "app-store",
+      export_options: "exportOptions.plist",
+      output_directory: "build",
+      output_name: "CiCdTestingDev.ipa",
+      clean: true,
+      derived_data_path: "DerivedData",
+      build_path: "build",
+      archive_path: "build/CiCdTestingDev.xcarchive",
+      skip_package_ipa: false,
+      xcargs: "SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=\"-enable-experimental-prebuilts\""
+    )
+  end
+
+  desc "Upload to App Store Connect"
+  lane :upload_to_testflight do
+    api_key = app_store_connect_api_key(
+      key_id: ENV['API_KEY'],
+      issuer_id: ENV['ISSUER_ID'],
+      key_filepath: "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
+    )
+    
+    pilot(
+      api_key: api_key,
+      ipa: "build/CiCdTestingDev.ipa",
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Full release process: build and upload"
+  lane :release do
+    build
+    upload_to_testflight
+  end
+end
