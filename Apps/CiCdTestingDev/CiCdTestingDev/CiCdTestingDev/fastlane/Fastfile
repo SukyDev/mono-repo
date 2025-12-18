@@ -58,8 +58,8 @@ platform :ios do
       only_testing: ["ContentViewTests"],
       code_coverage: true,
       result_bundle: true,
-      output_directory: ".",
-      buildlog_path: ".",
+      output_directory: "test_output",
+      buildlog_path: "test_output",
       clean: true,
       parallel_testing: false,
       derived_data_path: "DerivedData",
@@ -72,6 +72,15 @@ platform :ios do
   lane :coverage do |options|
     minimum_coverage = options[:minimum_coverage] || 20.0
     
+    # xcov needs the xcresult bundle path
+    result_bundle_path = File.expand_path("./test_output/CiCdTestingDev.xcresult")
+    
+    unless File.exist?(result_bundle_path)
+      UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
+    end
+    
+    UI.important "📊 Generating coverage report from: #{result_bundle_path}"
+    
     xcov(
       scheme: "CiCdTestingDev",
       project: "CiCdTestingDev.xcodeproj",
@@ -81,10 +90,11 @@ platform :ios do
       markdown_report: true,
       minimum_coverage_percentage: minimum_coverage,
       include_test_targets: false,
-      only_project_targets: true
+      only_project_targets: true,
+      derived_data_path: "DerivedData"
     )
     
-    # Read the coverage percentage
+    # Read the coverage percentage from xcov's output
     coverage_file = "coverage_report/index.json"
     if File.exist?(coverage_file)
       require 'json'
@@ -105,6 +115,8 @@ platform :ios do
           f.puts "coverage=#{coverage}"
         end
       end
+    else
+      UI.warning "⚠️  Could not find coverage JSON file at #{coverage_file}"
     end
   end
 
