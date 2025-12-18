@@ -100,10 +100,24 @@ platform :ios do
   lane :coverage do |options|
     minimum_coverage = options[:minimum_coverage] || 20.0
     
-    # xcov needs the xcresult bundle path - go up one level from fastlane/ dir
-    result_bundle_path = File.expand_path("../test_output/CiCdTesting.xcresult", __dir__)
+    # The test_output is one level up from fastlane directory
+    # __dir__ gives us the fastlane/ directory, so go up one level
+    project_root = File.expand_path("..", __dir__)
+    result_bundle_path = File.join(project_root, "test_output", "CiCdTesting.xcresult")
+    
+    UI.important "📂 Looking for test results at: #{result_bundle_path}"
+    UI.important "📂 Project root: #{project_root}"
     
     unless File.exist?(result_bundle_path)
+      # Debug: show what actually exists
+      test_output_dir = File.join(project_root, "test_output")
+      if Dir.exist?(test_output_dir)
+        UI.warning "test_output directory exists but .xcresult not found"
+        UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
+      else
+        UI.warning "test_output directory doesn't exist at: #{test_output_dir}"
+      end
+      
       UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
     end
     
@@ -124,7 +138,7 @@ platform :ios do
     )
     
     # Read the coverage percentage from xcov's output
-    coverage_file = File.expand_path("../coverage_report/index.json", __dir__)
+    coverage_file = File.join(project_root, "coverage_report", "index.json")
     if File.exist?(coverage_file)
       require 'json'
       data = JSON.parse(File.read(coverage_file))
@@ -158,11 +172,6 @@ platform :ios do
   desc "Build app for release"
   lane :build do
     clear_derived_data
-    
-    spm(
-      command: "resolve",
-      project: "CiCdTesting.xcodeproj"
-    )
     
     gym(
       project: "CiCdTesting.xcodeproj",
