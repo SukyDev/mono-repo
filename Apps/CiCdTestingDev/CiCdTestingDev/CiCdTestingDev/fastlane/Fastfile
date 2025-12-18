@@ -27,11 +27,18 @@ platform :ios do
     # Get parameters
     device_id = options[:device_id] || ENV['DEVICE_ID']
     
+    # Build destination string
+    if device_id && !device_id.empty?
+      destination = "platform=iOS Simulator,id=#{device_id}"
+    else
+      destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
+    end
+    
     scan(
       project: "CiCdTestingDev.xcodeproj",
       scheme: "CiCdTestingDev",
       testplan: "CiCdTestingDev",
-      device: device_id ? "id=#{device_id}" : "iPhone SE (3rd generation)",
+      destination: destination,
       only_testing: ["ContentViewTests"],
       code_coverage: true,
       result_bundle: true,
