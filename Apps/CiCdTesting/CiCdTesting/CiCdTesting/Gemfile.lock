@@ -232,7 +232,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  fastlane
+  fastlane (~> 2.225.0)
   xcov
   xcpretty
 
