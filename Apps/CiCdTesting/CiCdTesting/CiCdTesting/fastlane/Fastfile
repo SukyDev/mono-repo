@@ -49,31 +49,44 @@ platform :ios do
     end
     
     UI.important "📱 Final destination: #{destination}"
+    UI.important "📂 Output will be in: #{File.expand_path('../test_output', __dir__)}"
     
-    scan(
-      project: "CiCdTesting.xcodeproj",
-      scheme: "CiCdTesting",
-      testplan: "CiCdTesting",
-      destination: destination,
-      only_testing: ["ContentViewTests"],
-      code_coverage: true,
-      result_bundle: true,
-      output_directory: "../test_output",
-      buildlog_path: "../test_output",
-      clean: true,
-      parallel_testing: false,
-      derived_data_path: "DerivedData",
-      skip_build: false,
-      reset_simulator: false
-    )
+    begin
+      scan(
+        project: "CiCdTesting.xcodeproj",
+        scheme: "CiCdTesting",
+        testplan: "CiCdTesting",
+        destination: destination,
+        only_testing: ["ContentViewTests"],
+        code_coverage: true,
+        result_bundle: true,
+        output_directory: "../test_output",
+        buildlog_path: "../test_output",
+        clean: true,
+        parallel_testing: false,
+        derived_data_path: "DerivedData",
+        skip_build: false,
+        reset_simulator: false
+      )
+    rescue => ex
+      UI.error "Tests failed: #{ex.message}"
+      UI.important "Checking if test results were still generated..."
+      result_path = File.expand_path("../test_output/CiCdTesting.xcresult", __dir__)
+      if File.exist?(result_path)
+        UI.success "✅ Test results exist at #{result_path}"
+      else
+        UI.error "❌ No test results found at #{result_path}"
+      end
+      raise ex
+    end
   end
 
   desc "Generate code coverage report with xcov"
   lane :coverage do |options|
     minimum_coverage = options[:minimum_coverage] || 20.0
     
-    # xcov needs the xcresult bundle path
-    result_bundle_path = File.expand_path("./test_output/CiCdTesting.xcresult")
+    # xcov needs the xcresult bundle path - go up one level from fastlane/ dir
+    result_bundle_path = File.expand_path("../test_output/CiCdTesting.xcresult", __dir__)
     
     unless File.exist?(result_bundle_path)
       UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
@@ -84,7 +97,7 @@ platform :ios do
     xcov(
       scheme: "CiCdTesting",
       project: "CiCdTesting.xcodeproj",
-      output_directory: "coverage_report",
+      output_directory: "../coverage_report",
       json_report: true,
       html_report: true,
       markdown_report: true,
@@ -95,7 +108,7 @@ platform :ios do
     )
     
     # Read the coverage percentage from xcov's output
-    coverage_file = "coverage_report/index.json"
+    coverage_file = File.expand_path("../coverage_report/index.json", __dir__)
     if File.exist?(coverage_file)
       require 'json'
       data = JSON.parse(File.read(coverage_file))

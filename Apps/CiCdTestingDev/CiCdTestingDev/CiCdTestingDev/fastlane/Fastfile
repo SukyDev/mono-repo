@@ -49,23 +49,36 @@ platform :ios do
     end
     
     UI.important "📱 Final destination: #{destination}"
+    UI.important "📂 Output will be in: #{File.expand_path('../test_output', __dir__)}"
     
-    scan(
-      project: "CiCdTestingDev.xcodeproj",
-      scheme: "CiCdTestingDev",
-      testplan: "CiCdTestingDev",
-      destination: destination,
-      only_testing: ["ContentViewTests"],
-      code_coverage: true,
-      result_bundle: true,
-      output_directory: "../test_output",
-      buildlog_path: "../test_output",
-      clean: true,
-      parallel_testing: false,
-      derived_data_path: "DerivedData",
-      skip_build: false,
-      reset_simulator: false
-    )
+    begin
+      scan(
+        project: "CiCdTestingDev.xcodeproj",
+        scheme: "CiCdTestingDev",
+        testplan: "CiCdTestingDev",
+        destination: destination,
+        only_testing: ["ContentViewTests"],
+        code_coverage: true,
+        result_bundle: true,
+        output_directory: "../test_output",
+        buildlog_path: "../test_output",
+        clean: true,
+        parallel_testing: false,
+        derived_data_path: "DerivedData",
+        skip_build: false,
+        reset_simulator: false
+      )
+    rescue => ex
+      UI.error "Tests failed: #{ex.message}"
+      UI.important "Checking if test results were still generated..."
+      result_path = File.expand_path("../test_output/CiCdTestingDev.xcresult", __dir__)
+      if File.exist?(result_path)
+        UI.success "✅ Test results exist at #{result_path}"
+      else
+        UI.error "❌ No test results found at #{result_path}"
+      end
+      raise ex
+    end
   end
 
   desc "Generate code coverage report with xcov"
