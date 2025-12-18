@@ -115,7 +115,7 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
+          ruby-version: '3.2'
           bundler-cache: true
           working-directory: ${{ matrix.folder }}
 
@@ -389,7 +389,7 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
+          ruby-version: '3.2'
           bundler-cache: true
           working-directory: ${{ matrix.project.folder }}
 
