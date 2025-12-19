@@ -153,7 +153,6 @@ platform :ios do
       markdown_report: true,
       minimum_coverage_percentage: minimum_coverage,
       include_test_targets: false,
-      only_project_targets: true,
       derived_data_path: derived_data_absolute,
       ignore_file_path: File.join(project_root, ".xcovignore"),
       exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
