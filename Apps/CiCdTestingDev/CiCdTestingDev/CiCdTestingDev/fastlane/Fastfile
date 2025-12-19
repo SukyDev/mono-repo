@@ -155,7 +155,8 @@ platform :ios do
       include_test_targets: false,
       only_project_targets: true,
       derived_data_path: derived_data_absolute,
-      ignore_file_path: File.join(project_root, ".xcovignore")
+      ignore_file_path: File.join(project_root, ".xcovignore"),
+      exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
     )
     
     # Read the coverage percentage from xcov's output

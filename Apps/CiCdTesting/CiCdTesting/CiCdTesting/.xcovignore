@@ -17,6 +17,15 @@ Pods/*
 **/Carthage/*
 **/SPM/*
 
+# Ignore Swift Package Manager dependencies
+ComposableArchitecture*
+Dependencies*
+CombineSchedulers*
+CustomDump*
+IdentifiedCollections*
+OrderedCollections*
+XCTestDynamicOverlay*
+
 # You can also ignore specific directories or files
 # Example:
 # SomeDirectory/*
