@@ -66,10 +66,13 @@ platform :ios do
     # Project root is one level up from fastlane directory
     project_root = File.expand_path("..", __dir__)
     test_output_path = File.join(project_root, "test_output")
+    # Use absolute path for derived data - critical for xcov to find coverage files
+    derived_data_absolute = File.join(project_root, "DerivedData")
     
     UI.important "📱 Final destination: #{destination}"
     UI.important "📂 Fastlane directory: #{__dir__}"
     UI.important "📂 Project root: #{project_root}"
+    UI.important "📂 Derived data: #{derived_data_absolute}"
     UI.important "📂 Output will be in: #{test_output_path}"
     
     begin
@@ -85,7 +88,7 @@ platform :ios do
         buildlog_path: test_output_path,
         clean: true,
         parallel_testing: false,
-        derived_data_path: "DerivedData",
+        derived_data_path: derived_data_absolute,
         skip_build: false,
         reset_simulator: false
       )
