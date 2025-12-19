@@ -24,49 +24,39 @@ platform :ios do
 
   desc "Run tests with code coverage"
   lane :test do |options|
-    # Get device ID from environment (should be set by CI)
     device_id = ENV['DEVICE_ID']
     
     if device_id && !device_id.empty?
       destination = "platform=iOS Simulator,id=#{device_id}"
       UI.important "🎯 Using specific device ID: #{device_id}"
     else
-      # Fallback: find ANY available iPhone SE (any iOS version)
       UI.important "⚠️  No DEVICE_ID provided, searching for any iPhone SE..."
       
-      # List available simulators
       simulators = `xcrun simctl list devices available`.lines
       
-      # Try to find iPhone SE with iOS 18.6 first
       iphone_se = simulators.find { |line| line.include?("iPhone SE (3rd generation)") && line.include?("18.6") }
       
-      # If not found, try any iPhone SE with iOS 18
       if !iphone_se
         iphone_se = simulators.find { |line| line.include?("iPhone SE (3rd generation)") && line.include?("(18.") }
       end
       
-      # If still not found, try any iPhone SE
       if !iphone_se
         iphone_se = simulators.find { |line| line.include?("iPhone SE (3rd generation)") }
       end
       
       if iphone_se
-        # Extract UUID from the line
         device_id = iphone_se[/([A-F0-9-]{36})/, 1]
         destination = "platform=iOS Simulator,id=#{device_id}"
         UI.success "Found iPhone SE: #{iphone_se.strip}"
         UI.success "Using device ID: #{device_id}"
       else
-        # Last resort: use by name and let xcodebuild pick one
         destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
-        UI.important "No specific iPhone SE found, using name-based destination"
+        UI.important "⚠️  No specific iPhone SE found, using name-based destination"
       end
     end
     
-    # Project root is one level up from fastlane directory
     project_root = File.expand_path("..", __dir__)
     test_output_path = File.join(project_root, "test_output")
-    # Use absolute path for derived data - critical for xcov to find coverage files
     derived_data_absolute = File.join(project_root, "DerivedData")
     
     UI.important "📱 Final destination: #{destination}"
@@ -93,7 +83,6 @@ platform :ios do
         reset_simulator: false
       )
       
-      # After scan completes, check if output was created
       UI.success "✅ Tests completed!"
       UI.important "Checking for output at: #{test_output_path}"
       
@@ -121,7 +110,6 @@ platform :ios do
   lane :coverage do |options|
     minimum_coverage = options[:minimum_coverage] || 20.0
     
-    # Project root is one level up from fastlane directory
     project_root = File.expand_path("..", __dir__)
     result_bundle_path = File.join(project_root, "test_output", "CiCdTesting.xcresult")
     coverage_output_path = File.join(project_root, "coverage_report")
@@ -132,13 +120,12 @@ platform :ios do
     UI.important "📂 Derived data path: #{derived_data_absolute}"
     
     unless File.exist?(result_bundle_path)
-      # Debug: show what actually exists
       test_output_dir = File.join(project_root, "test_output")
       if Dir.exist?(test_output_dir)
-        UI.important "test_output directory exists but .xcresult not found"
+        UI.important "⚠️  test_output directory exists but .xcresult not found"
         UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
       else
-        UI.important "test_output directory doesn't exist at: #{test_output_dir}"
+        UI.important "⚠️  test_output directory doesn't exist at: #{test_output_dir}"
       end
       
       UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
@@ -161,7 +148,6 @@ platform :ios do
       exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
     )
     
-    # Read the coverage percentage from xcov's output
     coverage_file = File.join(coverage_output_path, "index.json")
     if File.exist?(coverage_file)
       require 'json'
@@ -176,7 +162,6 @@ platform :ios do
         UI.success "✅ Code coverage meets threshold!"
       end
       
-      # Export for GitHub Actions
       if ENV['GITHUB_OUTPUT']
         File.open(ENV['GITHUB_OUTPUT'], 'a') do |f|
           f.puts "coverage=#{coverage}"
@@ -195,7 +180,45 @@ platform :ios do
 
   desc "Build app for release"
   lane :build do
-    clear_derived_data
+    # Get API key for fetching build numbers
+    api_key = app_store_connect_api_key(
+      key_id: ENV['API_KEY'],
+      issuer_id: ENV['ISSUER_ID'],
+      key_filepath: ENV['API_KEY_PATH'] || "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
+    )
+    
+    # Bundle ID will be automatically read from Appfile
+    bundle_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    
+    UI.important "🔍 Fetching latest build number for: #{bundle_id}"
+    
+    begin
+      # Fetch the latest build number from App Store Connect
+      latest_build = app_store_build_number(
+        api_key: api_key,
+        app_identifier: bundle_id,
+        live: false  # Get from TestFlight, not production
+      )
+      
+      new_build_number = latest_build.to_i + 1
+      UI.success "📦 Latest App Store Connect build: #{latest_build}"
+      UI.success "📦 New build number will be: #{new_build_number}"
+      
+    rescue => ex
+      UI.important "⚠️  Could not fetch from App Store Connect: #{ex.message}"
+      UI.important "⚠️  Using current project build number + 1"
+      current_build = get_build_number(xcodeproj: "CiCdTesting.xcodeproj")
+      new_build_number = current_build.to_i + 1
+      UI.success "📦 New build number will be: #{new_build_number}"
+    end
+    
+    # Set the new build number
+    increment_build_number(
+      build_number: new_build_number,
+      xcodeproj: "CiCdTesting.xcodeproj"
+    )
+    
+    UI.success "✅ Building with build number: #{new_build_number}"
     
     gym(
       project: "CiCdTesting.xcodeproj",
@@ -203,28 +226,53 @@ platform :ios do
       export_method: "app-store",
       export_options: "exportOptions.plist",
       output_directory: "build",
-      output_name: "CiCdTesting.ipa",
-      clean: true,
-      derived_data_path: "DerivedData",
-      build_path: "build",
-      archive_path: "build/CiCdTesting.xcarchive",
-      skip_package_ipa: false,
-      xcargs: "SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=\"-enable-experimental-prebuilts\""
+      output_name: "CiCdTesting.ipa"
     )
   end
 
   desc "Upload to TestFlight"
   lane :deploy_testflight do
+    project_root = File.expand_path("..", __dir__)
+    ipa_path = File.join(project_root, "build", "CiCdTesting.ipa")
+    
+    UI.important "📦 Looking for IPA at: #{ipa_path}"
+    
+    unless File.exist?(ipa_path)
+      UI.user_error! "❌ IPA not found at #{ipa_path}. Did you run build first?"
+    end
+    
+    ipa_size = File.size(ipa_path)
+    UI.important "📦 IPA size: #{ipa_size} bytes"
+    
+    if ipa_size < 1000
+      UI.user_error! "❌ IPA file seems invalid (too small: #{ipa_size} bytes)"
+    end
+    
+    api_key_path = ENV['API_KEY_PATH'] || "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
+    
+    UI.important "🔑 API Key path: #{api_key_path}"
+    
+    unless File.exist?(api_key_path)
+      UI.user_error! "❌ API Key not found at #{api_key_path}"
+    end
+    
     api_key = app_store_connect_api_key(
       key_id: ENV['API_KEY'],
       issuer_id: ENV['ISSUER_ID'],
-      key_filepath: "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
+      key_filepath: api_key_path,
+      in_house: false
     )
     
-    pilot(
-      api_key: api_key,
-      ipa: "build/CiCdTesting.ipa",
-      skip_waiting_for_build_processing: true
+    UI.success "✅ Using App Store Connect API Key"
+    
+    sh(
+      "xcrun",
+      "altool",
+      "--upload-app",
+      "--type", "ios",
+      "--file", ipa_path,
+      "--apiKey", ENV['API_KEY'],
+      "--apiIssuer", ENV['ISSUER_ID']
     )
   end
 
