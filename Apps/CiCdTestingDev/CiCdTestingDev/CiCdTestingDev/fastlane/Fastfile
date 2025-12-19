@@ -59,7 +59,7 @@ platform :ios do
       else
         # Last resort: use by name and let xcodebuild pick one
         destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
-        UI.important "No specific iPhone SE found, using name-based destination"
+        UI.important "⚠️  No specific iPhone SE found, using name-based destination"
       end
     end
     
@@ -135,10 +135,10 @@ platform :ios do
       # Debug: show what actually exists
       test_output_dir = File.join(project_root, "test_output")
       if Dir.exist?(test_output_dir)
-        UI.important "test_output directory exists but .xcresult not found"
+        UI.important "⚠️  test_output directory exists but .xcresult not found"
         UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
       else
-        UI.important "test_output directory doesn't exist at: #{test_output_dir}"
+        UI.important "⚠️  test_output directory doesn't exist at: #{test_output_dir}"
       end
       
       UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
@@ -195,7 +195,22 @@ platform :ios do
 
   desc "Build app for release"
   lane :build do
-    clear_derived_data
+    # Increment build number automatically
+    if ENV['GITHUB_RUN_NUMBER']
+      # Use CI build number if available
+      increment_build_number(
+        build_number: ENV['GITHUB_RUN_NUMBER'],
+        xcodeproj: "CiCdTestingDev.xcodeproj"
+      )
+    else
+      # Otherwise just increment by 1
+      increment_build_number(
+        xcodeproj: "CiCdTestingDev.xcodeproj"
+      )
+    end
+    
+    build_number = get_build_number(xcodeproj: "CiCdTestingDev.xcodeproj")
+    UI.success "📦 Building version with build number: #{build_number}"
     
     gym(
       project: "CiCdTestingDev.xcodeproj",
@@ -208,52 +223,58 @@ platform :ios do
   end
 
   desc "Upload to TestFlight"
-lane :deploy_testflight do
-  # Get the absolute path to the IPA
-  project_root = File.expand_path("..", __dir__)
-  ipa_path = File.join(project_root, "build", "CiCdTestingDev.ipa")
-  
-  UI.important "📦 Looking for IPA at: #{ipa_path}"
-  
-  unless File.exist?(ipa_path)
-    UI.user_error! "❌ IPA not found at #{ipa_path}. Did you run build first?"
+  lane :deploy_testflight do
+    # Get the absolute path to the IPA
+    project_root = File.expand_path("..", __dir__)
+    ipa_path = File.join(project_root, "build", "CiCdTestingDev.ipa")
+    
+    UI.important "📦 Looking for IPA at: #{ipa_path}"
+    
+    unless File.exist?(ipa_path)
+      UI.user_error! "❌ IPA not found at #{ipa_path}. Did you run build first?"
+    end
+    
+    # Verify IPA file is valid
+    ipa_size = File.size(ipa_path)
+    UI.important "📦 IPA size: #{ipa_size} bytes"
+    
+    if ipa_size < 1000
+      UI.user_error! "❌ IPA file seems invalid (too small: #{ipa_size} bytes)"
+    end
+    
+    # Get API key path
+    api_key_path = ENV['API_KEY_PATH'] || "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
+    
+    UI.important "🔑 API Key path: #{api_key_path}"
+    
+    unless File.exist?(api_key_path)
+      UI.user_error! "❌ API Key not found at #{api_key_path}"
+    end
+    
+    api_key = app_store_connect_api_key(
+      key_id: ENV['API_KEY'],
+      issuer_id: ENV['ISSUER_ID'],
+      key_filepath: api_key_path,
+      in_house: false
+    )
+    
+    UI.success "✅ Using App Store Connect API Key"
+    
+    # Use shell command as workaround
+    sh(
+      "xcrun",
+      "altool",
+      "--upload-app",
+      "--type", "ios",
+      "--file", ipa_path,
+      "--apiKey", ENV['API_KEY'],
+      "--apiIssuer", ENV['ISSUER_ID']
+    )
   end
-  
-  # Verify IPA file is valid
-  ipa_size = File.size(ipa_path)
-  UI.important "📦 IPA size: #{ipa_size} bytes"
-  
-  if ipa_size < 1000
-    UI.user_error! "❌ IPA file seems invalid (too small: #{ipa_size} bytes)"
+
+  desc "Full release process: build and upload"
+  lane :release do
+    build
+    deploy_testflight
   end
-  
-  # Get API key path
-  api_key_path = ENV['API_KEY_PATH'] || "#{Dir.home}/private_keys/AuthKey_#{ENV['API_KEY']}.p8"
-  
-  UI.important "🔑 API Key path: #{api_key_path}"
-  
-  unless File.exist?(api_key_path)
-    UI.user_error! "❌ API Key not found at #{api_key_path}"
-  end
-  
-  api_key = app_store_connect_api_key(
-    key_id: ENV['API_KEY'],
-    issuer_id: ENV['ISSUER_ID'],
-    key_filepath: api_key_path,
-    in_house: false
-  )
-  
-  UI.success "✅ Using App Store Connect API Key"
-  
-  # Use shell command as workaround
-  sh(
-    "xcrun",
-    "altool",
-    "--upload-app",
-    "--type", "ios",
-    "--file", ipa_path,
-    "--apiKey", ENV['API_KEY'],
-    "--apiIssuer", ENV['ISSUER_ID']
-  )
-end
 end
