@@ -203,13 +203,7 @@ platform :ios do
       export_method: "app-store",
       export_options: "exportOptions.plist",
       output_directory: "build",
-      output_name: "CiCdTestingDev.ipa",
-      clean: true,
-      derived_data_path: "DerivedData",
-      build_path: "build",
-      archive_path: "build/CiCdTestingDev.xcarchive",
-      skip_package_ipa: false,
-      xcargs: "SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES"
+      output_name: "CiCdTestingDev.ipa"
     )
   end
 
