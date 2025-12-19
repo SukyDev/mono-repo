@@ -59,7 +59,7 @@ platform :ios do
       else
         # Last resort: use by name and let xcodebuild pick one
         destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
-        UI.warning "No specific iPhone SE found, using name-based destination"
+        UI.important "No specific iPhone SE found, using name-based destination"
       end
     end
     
@@ -118,75 +118,74 @@ platform :ios do
   end
 
   desc "Generate code coverage report with xcov"
-lane :coverage do |options|
-  minimum_coverage = options[:minimum_coverage] || 20.0
-  
-  # Project root is one level up from fastlane directory
-  project_root = File.expand_path("..", __dir__)
-  result_bundle_path = File.join(project_root, "test_output", "CiCdTestingDev.xcresult")
-  coverage_output_path = File.join(project_root, "coverage_report")
-  derived_data_absolute = File.join(project_root, "DerivedData")
-  
-  UI.important "📂 Looking for test results at: #{result_bundle_path}"
-  UI.important "📂 Project root: #{project_root}"
-  UI.important "📂 Derived data path: #{derived_data_absolute}"
-  
-  unless File.exist?(result_bundle_path)
-    # Debug: show what actually exists
-    test_output_dir = File.join(project_root, "test_output")
-    if Dir.exist?(test_output_dir)
-      UI.warning "test_output directory exists but .xcresult not found"
-      UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
-    else
-      UI.warning "test_output directory doesn't exist at: #{test_output_dir}"
-    end
+  lane :coverage do |options|
+    minimum_coverage = options[:minimum_coverage] || 20.0
     
-    UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
-  end
-  
-  UI.important "📊 Generating coverage report from: #{result_bundle_path}"
-  UI.important "📊 Coverage output will be in: #{coverage_output_path}"
-  
-  xcov(
-    scheme: "CiCdTestingDev",
-    project: "CiCdTestingDev.xcodeproj",
-    xccovreport_path: result_bundle_path,  # 🔥 ADD THIS LINE - point directly to .xcresult
-    output_directory: coverage_output_path,
-    json_report: true,
-    html_report: true,
-    markdown_report: true,
-    minimum_coverage_percentage: minimum_coverage,
-    include_test_targets: false,
-    # derived_data_path: derived_data_absolute,  # 🔥 REMOVE OR COMMENT THIS - not needed with xccovreport_path
-    ignore_file_path: File.join(project_root, ".xcovignore"),
-    exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
-  )
-  
-  # Read the coverage percentage from xcov's output
-  coverage_file = File.join(coverage_output_path, "index.json")
-  if File.exist?(coverage_file)
-    require 'json'
-    data = JSON.parse(File.read(coverage_file))
-    coverage = data['coverage']
+    # Project root is one level up from fastlane directory
+    project_root = File.expand_path("..", __dir__)
+    result_bundle_path = File.join(project_root, "test_output", "CiCdTestingDev.xcresult")
+    coverage_output_path = File.join(project_root, "coverage_report")
+    derived_data_absolute = File.join(project_root, "DerivedData")
     
-    UI.success "📊 Code Coverage: #{coverage}%"
+    UI.important "📂 Looking for test results at: #{result_bundle_path}"
+    UI.important "📂 Project root: #{project_root}"
+    UI.important "📂 Derived data path: #{derived_data_absolute}"
     
-    if coverage < minimum_coverage
-      UI.user_error! "❌ Code coverage (#{coverage}%) is below threshold (#{minimum_coverage}%)"
-    else
-      UI.success "✅ Code coverage meets threshold!"
-    end
-    
-    # Export for GitHub Actions
-    if ENV['GITHUB_OUTPUT']
-      File.open(ENV['GITHUB_OUTPUT'], 'a') do |f|
-        f.puts "coverage=#{coverage}"
+    unless File.exist?(result_bundle_path)
+      # Debug: show what actually exists
+      test_output_dir = File.join(project_root, "test_output")
+      if Dir.exist?(test_output_dir)
+        UI.important "test_output directory exists but .xcresult not found"
+        UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
+      else
+        UI.important "test_output directory doesn't exist at: #{test_output_dir}"
       end
+      
+      UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
     end
-  else
-    UI.warning "⚠️  Could not find coverage JSON file at #{coverage_file}"
+    
+    UI.important "📊 Generating coverage report from: #{result_bundle_path}"
+    UI.important "📊 Coverage output will be in: #{coverage_output_path}"
+    
+    xcov(
+      scheme: "CiCdTestingDev",
+      project: "CiCdTestingDev.xcodeproj",
+      xccov_file_direct_path: result_bundle_path,
+      output_directory: coverage_output_path,
+      json_report: true,
+      html_report: true,
+      markdown_report: true,
+      minimum_coverage_percentage: minimum_coverage,
+      include_test_targets: false,
+      ignore_file_path: File.join(project_root, ".xcovignore"),
+      exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
+    )
+    
+    # Read the coverage percentage from xcov's output
+    coverage_file = File.join(coverage_output_path, "index.json")
+    if File.exist?(coverage_file)
+      require 'json'
+      data = JSON.parse(File.read(coverage_file))
+      coverage = data['coverage']
+      
+      UI.success "📊 Code Coverage: #{coverage}%"
+      
+      if coverage < minimum_coverage
+        UI.user_error! "❌ Code coverage (#{coverage}%) is below threshold (#{minimum_coverage}%)"
+      else
+        UI.success "✅ Code coverage meets threshold!"
+      end
+      
+      # Export for GitHub Actions
+      if ENV['GITHUB_OUTPUT']
+        File.open(ENV['GITHUB_OUTPUT'], 'a') do |f|
+          f.puts "coverage=#{coverage}"
+        end
+      end
+    else
+      UI.important "⚠️  Could not find coverage JSON file at #{coverage_file}"
+    end
   end
-end
 
   desc "Run tests and generate coverage report"
   lane :test_with_coverage do |options|
