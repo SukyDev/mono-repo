@@ -209,7 +209,7 @@ platform :ios do
       build_path: "build",
       archive_path: "build/CiCdTestingDev.xcarchive",
       skip_package_ipa: false,
-      xcargs: "SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=\"-enable-experimental-prebuilts\""
+      xcargs: "SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES"
     )
   end
 
