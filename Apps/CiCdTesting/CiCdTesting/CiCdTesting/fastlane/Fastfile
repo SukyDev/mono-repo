@@ -59,7 +59,7 @@ platform :ios do
       else
         # Last resort: use by name and let xcodebuild pick one
         destination = "platform=iOS Simulator,name=iPhone SE (3rd generation)"
-        UI.warning "No specific iPhone SE found, using name-based destination"
+        UI.important "No specific iPhone SE found, using name-based destination"
       end
     end
     
@@ -135,10 +135,10 @@ platform :ios do
       # Debug: show what actually exists
       test_output_dir = File.join(project_root, "test_output")
       if Dir.exist?(test_output_dir)
-        UI.warning "test_output directory exists but .xcresult not found"
+        UI.important "test_output directory exists but .xcresult not found"
         UI.important "Contents: #{Dir.entries(test_output_dir).join(', ')}"
       else
-        UI.warning "test_output directory doesn't exist at: #{test_output_dir}"
+        UI.important "test_output directory doesn't exist at: #{test_output_dir}"
       end
       
       UI.user_error! "❌ Test results not found at #{result_bundle_path}. Did you run tests first?"
@@ -183,7 +183,7 @@ platform :ios do
         end
       end
     else
-      UI.warning "⚠️  Could not find coverage JSON file at #{coverage_file}"
+      UI.important "⚠️  Could not find coverage JSON file at #{coverage_file}"
     end
   end
 
