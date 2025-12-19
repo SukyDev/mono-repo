@@ -122,9 +122,11 @@ platform :ios do
     project_root = File.expand_path("..", __dir__)
     result_bundle_path = File.join(project_root, "test_output", "CiCdTesting.xcresult")
     coverage_output_path = File.join(project_root, "coverage_report")
+    derived_data_absolute = File.join(project_root, "DerivedData")
     
     UI.important "📂 Looking for test results at: #{result_bundle_path}"
     UI.important "📂 Project root: #{project_root}"
+    UI.important "📂 Derived data path: #{derived_data_absolute}"
     
     unless File.exist?(result_bundle_path)
       # Debug: show what actually exists
@@ -152,8 +154,8 @@ platform :ios do
       minimum_coverage_percentage: minimum_coverage,
       include_test_targets: false,
       only_project_targets: true,
-      derived_data_path: "DerivedData",
-      ignore_file_path: ".xcovignore"
+      derived_data_path: derived_data_absolute,
+      ignore_file_path: File.join(project_root, ".xcovignore")
     )
     
     # Read the coverage percentage from xcov's output
