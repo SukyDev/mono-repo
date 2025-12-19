@@ -1,0 +1,4 @@
+test_output/
+coverage_report/
+DerivedData/
+*.xcresult
