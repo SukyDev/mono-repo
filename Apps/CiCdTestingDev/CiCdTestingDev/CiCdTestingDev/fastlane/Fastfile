@@ -245,14 +245,15 @@ lane :deploy_testflight do
   
   UI.success "✅ Using App Store Connect API Key"
   
-  # Use upload_to_testflight instead of pilot for better error handling
-  upload_to_testflight(
-    api_key: api_key,
-    ipa: ipa_path,
-    skip_waiting_for_build_processing: true,
-    skip_submission: true,
-    distribute_external: false,
-    notify_external_testers: false
+  # Use shell command as workaround
+  sh(
+    "xcrun",
+    "altool",
+    "--upload-app",
+    "--type", "ios",
+    "--file", ipa_path,
+    "--apiKey", ENV['API_KEY'],
+    "--apiIssuer", ENV['ISSUER_ID']
   )
 end
 end
