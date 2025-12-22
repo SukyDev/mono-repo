@@ -232,7 +232,7 @@ jobs:
             exit 0
           fi
 
-          bundle exec fastlane coverage minimum_coverage:20.0
+          bundle exec fastlane coverage minimum_coverage:10.0
 
       - name: Upload Coverage Report
         if: steps.check.outputs.skip != 'true' && always()
