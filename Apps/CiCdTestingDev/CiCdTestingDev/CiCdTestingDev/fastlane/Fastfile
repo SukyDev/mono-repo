@@ -145,7 +145,26 @@ platform :ios do
       minimum_coverage_percentage: minimum_coverage,
       include_test_targets: false,
       ignore_file_path: File.join(project_root, ".xcovignore"),
-      exclude_targets: "ComposableArchitecture.framework,Dependencies.framework,CombineSchedulers.framework,CustomDump.framework,IdentifiedCollections.framework,OrderedCollections.framework,XCTestDynamicOverlay.framework"
+      exclude_targets: [
+        "CiCdTestingDev.app",  # Exclude the main app target
+        "CiCdTestingDevTests",  # Exclude test targets
+        "CiCdTestingDevUITests",  # Exclude UI test targets
+        "ComposableArchitecture.framework",
+        "Dependencies.framework",
+        "CombineSchedulers.framework",
+        "CustomDump.framework",
+        "IdentifiedCollections.framework",
+        "OrderedCollections.framework",
+        "XCTestDynamicOverlay.framework",
+        "Perception.framework",
+        "swift-perception",
+        "swift-dependencies",
+        "swift-identified-collections",
+        "swift-case-paths",
+        "swift-custom-dump",
+        "combine-schedulers",
+        "xctest-dynamic-overlay"
+      ].join(',')
     )
     
     coverage_file = File.join(coverage_output_path, "index.json")
