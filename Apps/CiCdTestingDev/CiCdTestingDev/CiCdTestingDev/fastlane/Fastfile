@@ -195,19 +195,11 @@ platform :ios do
 
   desc "Build app for release"
   lane :build do
-    # Increment build number automatically
-    if ENV['GITHUB_RUN_NUMBER']
-      # Use CI build number if available
-      increment_build_number(
-        build_number: ENV['GITHUB_RUN_NUMBER'],
-        xcodeproj: "CiCdTestingDev.xcodeproj"
-      )
-    else
-      # Otherwise just increment by 1
+   # Increment build number automatically
       increment_build_number(
         xcodeproj: "CiCdTestingDev.xcodeproj"
       )
-    end
+   end
     
     build_number = get_build_number(xcodeproj: "CiCdTestingDev.xcodeproj")
     UI.success "📦 Building version with build number: #{build_number}"
